@@ -1,0 +1,7 @@
+/业务规则.md
+/.tools/
+/.artifacts/
+**/bin/
+**/obj/
+/.vs/
+*.user
