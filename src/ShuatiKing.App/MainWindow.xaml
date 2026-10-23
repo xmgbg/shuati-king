@@ -1,0 +1,26 @@
+<Window x:Class="ShuatiKing.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Title="刷题KING" Width="1440" Height="900" MinWidth="1080" MinHeight="720" Icon="Assets/logo.png" WindowStartupLocation="CenterScreen">
+ <Grid>
+  <Grid.RowDefinitions><RowDefinition Height="80" /><RowDefinition Height="*" /><RowDefinition Height="32" /></Grid.RowDefinitions>
+  <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1">
+   <DockPanel Margin="28,0">
+    <Button x:Name="ProfileButton" Click="ProfileClick" BorderThickness="0" Padding="0,8,22,8" Foreground="{DynamicResource TextBrush}" AutomationProperties.Name="打开我的个人资料与设置">
+     <StackPanel Orientation="Horizontal">
+      <Border Width="42" Height="42" CornerRadius="21" Background="{DynamicResource TintBrush}" Margin="0,0,12,0"><Image x:Name="AvatarImage" Source="Assets/logo.png" Stretch="UniformToFill" /></Border>
+      <StackPanel VerticalAlignment="Center"><TextBlock x:Name="NicknameText" Text="学习者" FontWeight="SemiBold" FontSize="16" MaxWidth="100" TextTrimming="CharacterEllipsis" /><TextBlock Text="我的" FontSize="12" Style="{StaticResource MutedText}" Margin="0,3,0,0" /></StackPanel>
+     </StackPanel>
+    </Button>
+    <Border Width="1" Background="{DynamicResource LineBrush}" Height="34" Margin="0,0,12,0" />
+    <StackPanel Orientation="Horizontal">
+     <RadioButton x:Name="LibraryTab" Style="{StaticResource NavTab}" GroupName="Navigation" Content="题库" Tag="题库" Checked="Navigate" />
+     <RadioButton Style="{StaticResource NavTab}" GroupName="Navigation" Content="刷题" Tag="刷题" Checked="Navigate" />
+     <RadioButton Style="{StaticResource NavTab}" GroupName="Navigation" Content="模拟考试" Tag="模拟考试" Checked="Navigate" />
+     <RadioButton Style="{StaticResource NavTab}" GroupName="Navigation" Content="错题本" Tag="错题本" Checked="Navigate" />
+     <RadioButton Style="{StaticResource NavTab}" GroupName="Navigation" Content="考试记录" Tag="考试记录" Checked="Navigate" />
+    </StackPanel>
+   </DockPanel>
+  </Border>
+  <ContentControl x:Name="PageHost" Grid.Row="1" />
+  <Border Grid.Row="2" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Background="{DynamicResource SurfaceBrush}"><TextBlock Text="界面预览 · 当前题库为示例数据" FontSize="12" Style="{StaticResource MutedText}" Margin="28,0" /></Border>
+ </Grid>
+</Window>
