@@ -1,5 +1,7 @@
 # 刷题KING
 
+<img src="assets/logo.png" alt="刷题KING LOGO" width="160" />
+
 刷题KING是一款规划中的 Windows 桌面刷题软件。目标是让用户从 PDF、Word 或文本资料建立知识库，生成题目，并进行日常练习和模拟考试。
 
 ## 计划功能
