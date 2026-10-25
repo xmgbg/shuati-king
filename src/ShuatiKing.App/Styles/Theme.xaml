@@ -72,4 +72,12 @@
  <Style x:Key="Icon" TargetType="TextBlock"><Setter Property="FontFamily" Value="Segoe MDL2 Assets"/><Setter Property="VerticalAlignment" Value="Center"/></Style>
  <Style x:Key="DetailLabel" TargetType="TextBlock" BasedOn="{StaticResource MutedText}"><Setter Property="Margin" Value="0,6"/><Setter Property="FontSize" Value="16"/></Style>
  <Style x:Key="StatusBadge" TargetType="Border"><Setter Property="Background" Value="{DynamicResource SuccessTintBrush}"/><Setter Property="Tag" Value="{DynamicResource SuccessBrush}"/><Setter Property="CornerRadius" Value="5"/><Setter Property="Padding" Value="10,7"/><Style.Triggers><DataTrigger Binding="{Binding IsReady}" Value="False"><Setter Property="Background" Value="{DynamicResource WarningTintBrush}"/><Setter Property="Tag" Value="{DynamicResource WarningBrush}"/></DataTrigger></Style.Triggers></Style>
+ <Style x:Key="Choice" TargetType="RadioButton">
+  <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/><Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/><Setter Property="FontSize" Value="14"/><Setter Property="Cursor" Value="Hand"/><Setter Property="Margin" Value="0,0,4,0"/>
+  <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="RadioButton"><Border x:Name="ChoiceBorder" Background="{TemplateBinding Background}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="5" Padding="6,11"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers>
+   <Trigger Property="IsChecked" Value="True"><Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/><Setter Property="Background" Value="{DynamicResource TintBrush}"/><Setter Property="FontWeight" Value="SemiBold"/><Setter TargetName="ChoiceBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/></Trigger>
+   <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ChoiceBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/></Trigger>
+   <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="ChoiceBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/><Setter TargetName="ChoiceBorder" Property="BorderThickness" Value="2"/></Trigger>
+  </ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+ </Style>
 </ResourceDictionary>

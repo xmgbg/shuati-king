@@ -1,5 +1,8 @@
 using System.Windows;
 using System.Windows.Controls;
+using Microsoft.Win32;
+using ShuatiKing.Models;
+using ShuatiKing.Services;
 using ShuatiKing.Views;
 
 namespace ShuatiKing;
@@ -7,15 +10,34 @@ namespace ShuatiKing;
 public partial class MainWindow : Window
 {
     private readonly LibraryView library = new();
-    public MainWindow()
+    private readonly LocalSettings settings;
+    private readonly SettingsStore store;
+    private ProfileView? profile;
+
+    public MainWindow() : this(new SettingsStore()) { }
+
+    public MainWindow(SettingsStore store)
     {
+        this.store = store;
+        try { settings = store.Load(); }
+        catch (Exception error) when (error is System.IO.IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException or System.Text.Json.JsonException)
+        {
+            settings = new();
+            MessageBox.Show("无法读取本机设置，本次先使用默认设置。原文件会保留，直到你重新保存。", "读取设置失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        if (settings.SelectedConfigurationId == Guid.Empty) settings.SelectedConfigurationId = settings.Configurations[0].Id;
+        ThemeManager.Apply(settings.Theme);
         InitializeComponent();
+        RefreshProfile();
         LibraryTab.IsChecked = true;
+        SystemEvents.UserPreferenceChanged += SystemPreferenceChanged;
+        Closed += (_, _) => SystemEvents.UserPreferenceChanged -= SystemPreferenceChanged;
     }
 
     private void Navigate(object sender, RoutedEventArgs e)
     {
         if (PageHost is null) return;
+        ProfileButton.SetResourceReference(BackgroundProperty, "SurfaceBrush");
         var title = ((RadioButton)sender).Content.ToString()!;
         if (title == "题库") PageHost.Content = library;
         else ShowPlaceholder(title);
@@ -24,11 +46,24 @@ public partial class MainWindow : Window
     private void ProfileClick(object sender, RoutedEventArgs e)
     {
         foreach (var tab in NavigationTabs.Children.OfType<RadioButton>()) tab.IsChecked = false;
-        ShowPlaceholder("我的");
+        profile ??= new ProfileView(settings, store, RefreshProfile);
+        PageHost.Content = profile;
+        ProfileButton.SetResourceReference(BackgroundProperty, "TintBrush");
     }
 
     private void ShowPlaceholder(string title) => PageHost.Content = new TextBlock
     {
         Text = title + "页面将在对应步骤完成", FontSize = 24, Margin = new Thickness(36)
     };
+
+    private void RefreshProfile()
+    {
+        NicknameText.Text = settings.Nickname;
+        AvatarImage.Source = ProfileView.AvatarSource(settings.Avatar);
+    }
+
+    private void SystemPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
+    {
+        if (settings.Theme == "跟随系统") Dispatcher.InvokeAsync(() => ThemeManager.Apply(settings.Theme));
+    }
 }

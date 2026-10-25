@@ -6,6 +6,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using ShuatiKing;
 using ShuatiKing.Views;
+using ShuatiKing.Services;
+using ShuatiKing.Models;
 
 internal static class Program
 {
@@ -14,7 +16,9 @@ internal static class Program
     {
         var app = new App();
         app.InitializeComponent();
-        var window = new MainWindow();
+        var settingsPath = Path.GetFullPath($".artifacts/check-settings-{Guid.NewGuid()}.dat");
+        var store = new SettingsStore(settingsPath);
+        var window = new MainWindow(store);
         window.Show();
         window.UpdateLayout();
         var host = (ContentControl)window.FindName("PageHost");
@@ -31,8 +35,34 @@ internal static class Program
         Capture(window, "home-light");
         window.Width = 1120; window.Height = 720;
         Capture(window, "home-compact");
+        window.Width = 1440; window.Height = 900;
+        ((Button)window.FindName("ProfileButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        window.UpdateLayout();
+        var profile = (ProfileView)host.Content;
+        ((TextBox)profile.FindName("NicknameInput")).Text = "小马";
+        Descendants<Button>(profile).Single(b => b.Content?.ToString() == "保存个人资料").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Check(((TextBlock)window.FindName("NicknameText")).Text == "小马", "昵称同步顶部入口");
+        ((RadioButton)profile.FindName("Font22")).IsChecked = true;
+        Check(((TextBlock)profile.FindName("QuestionPreview")).FontSize == 22, "字号预览即时生效");
+        ((RadioButton)profile.FindName("DarkTheme")).IsChecked = true;
+        Check(store.Load().Theme == "深色" && store.Load().QuestionFontSize == 22, "主题和字号保存");
+        Check(!File.ReadAllText(settingsPath).Contains("小马"), "个人设置加密保存");
+        Capture(window, "profile-dark");
+        ((RadioButton)profile.FindName("LightTheme")).IsChecked = true;
+        Capture(window, "profile-light");
         window.Close();
-        Console.WriteLine("通过：首页四题库切换、待审核状态与两种窗口渲染。");
+        File.Delete(settingsPath);
+        Console.WriteLine("通过：首页切换、窗口渲染、昵称同步、字号、深浅主题及加密设置往返。");
+    }
+
+    internal static IEnumerable<T> Descendants<T>(DependencyObject parent) where T : DependencyObject
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is T match) yield return match;
+            foreach (var descendant in Descendants<T>(child)) yield return descendant;
+        }
     }
 
     internal static void Check(bool value, string message)
