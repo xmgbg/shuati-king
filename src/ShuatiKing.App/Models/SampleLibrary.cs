@@ -5,8 +5,8 @@ namespace ShuatiKing.Models;
 
 public sealed class SampleLibrary : INotifyPropertyChanged
 {
-    public string Name { get; }
-    public string Source { get; }
+    public string Name { get; private set; }
+    public string Source { get; private set; }
     public string Color { get; }
     public string SourceText { get; set; } = "";
     public ObservableCollection<QuestionDraft> Questions { get; } = [];
@@ -34,6 +34,9 @@ public sealed class SampleLibrary : INotifyPropertyChanged
             Questions.Add(question);
         }
     }
+
+    public void UpdateSource(string name, string source, string text)
+    { Name = name; Source = source; SourceText = text; NotifyChanged(); }
 
     public void NotifyChanged() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(""));
     public event PropertyChangedEventHandler? PropertyChanged;

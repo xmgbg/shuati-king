@@ -58,7 +58,7 @@
        <TextBlock Text="&#xE7C3;" Style="{StaticResource Icon}" FontSize="46" Foreground="{Binding Color}" VerticalAlignment="Top" Margin="0,4,0,0"/>
        <StackPanel Grid.Column="1"><TextBlock Text="{Binding Name}" FontSize="24" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="{Binding Source, StringFormat=来源：{0}}" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,8,0,14"/><WrapPanel><TextBlock Text="{Binding Count, StringFormat={}{0} 题}" FontSize="18" Margin="0,0,16,0"/><Border Style="{StaticResource StatusBadge}"><TextBlock Text="{Binding Status}" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=Tag}" FontWeight="SemiBold"/></Border></WrapPanel></StackPanel>
       </Grid>
-      <Border Height="1" Background="{DynamicResource LineBrush}" Margin="0,24"/>
+      <TextBlock Text="{Binding ReviewSummary}" FontSize="13" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,16,0,0"/><Border Height="1" Background="{DynamicResource LineBrush}" Margin="0,24"/>
       <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
        <TextBlock Text="单选题" Style="{StaticResource DetailLabel}"/><TextBlock Grid.Column="1" Text="{Binding Single}" Style="{StaticResource DetailLabel}"/>
        <TextBlock Grid.Row="1" Text="多选题" Style="{StaticResource DetailLabel}"/><TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Multiple}" Style="{StaticResource DetailLabel}"/>

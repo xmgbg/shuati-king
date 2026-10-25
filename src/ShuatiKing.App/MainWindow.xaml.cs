@@ -13,6 +13,7 @@ public partial class MainWindow : Window
     private readonly LocalSettings settings;
     private readonly SettingsStore store;
     private ProfileView? profile;
+    private ImportView? importView;
     private readonly string runningModel;
 
     public MainWindow() : this(new SettingsStore()) { }
@@ -30,6 +31,7 @@ public partial class MainWindow : Window
         runningModel = settings.Configurations.Single(c => c.Id == settings.SelectedConfigurationId).Model.Trim();
         ThemeManager.Apply(settings.Theme);
         InitializeComponent();
+        library.ActionRequested += HandleLibraryAction;
         RefreshProfile();
         LibraryTab.IsChecked = true;
         SystemEvents.UserPreferenceChanged += SystemPreferenceChanged;
@@ -57,6 +59,21 @@ public partial class MainWindow : Window
     {
         Text = title + "页面将在对应步骤完成", FontSize = 24, Margin = new Thickness(36)
     };
+
+    private void HandleLibraryAction(string action, SampleLibrary? selected)
+    {
+        if (action == "导入资料")
+        {
+            importView ??= new ImportView(ShowReview, library.AddLibrary, ShowLibrary);
+            PageHost.Content = importView;
+        }
+        else if (action == "题目管理" && selected is not null) ShowReview(selected);
+        else ShowPlaceholder(action);
+    }
+
+    private void ShowLibrary() { PageHost.Content = library; LibraryTab.IsChecked = true; }
+
+    private void ShowReview(SampleLibrary selected) => ShowPlaceholder(selected.Name + " · 题目审核");
 
     private void RefreshProfile()
     {

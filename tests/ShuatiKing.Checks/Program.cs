@@ -107,6 +107,7 @@ internal static class Program
         Check(profileScroll.VerticalOffset > 0, "小窗口可滚动至下方连接结果");
         Capture(window, "profile-compact-bottom");
         ((RadioButton)profile.FindName("LightTheme")).IsChecked = true;
+        ImportChecks.Run(window);
         window.Close();
         var withAvatar = store.Load();
         withAvatar.Avatar = Convert.ToBase64String(File.ReadAllBytes("assets/logo.png"));
