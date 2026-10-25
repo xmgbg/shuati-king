@@ -13,6 +13,7 @@ public partial class MainWindow : Window
     private readonly LocalSettings settings;
     private readonly SettingsStore store;
     private ProfileView? profile;
+    private readonly string runningModel;
 
     public MainWindow() : this(new SettingsStore()) { }
 
@@ -26,6 +27,7 @@ public partial class MainWindow : Window
             MessageBox.Show("无法读取本机设置，本次先使用默认设置。原文件会保留，直到你重新保存。", "读取设置失败", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         if (settings.SelectedConfigurationId == Guid.Empty) settings.SelectedConfigurationId = settings.Configurations[0].Id;
+        runningModel = settings.Configurations.Single(c => c.Id == settings.SelectedConfigurationId).Model.Trim();
         ThemeManager.Apply(settings.Theme);
         InitializeComponent();
         RefreshProfile();
@@ -46,7 +48,7 @@ public partial class MainWindow : Window
     private void ProfileClick(object sender, RoutedEventArgs e)
     {
         foreach (var tab in NavigationTabs.Children.OfType<RadioButton>()) tab.IsChecked = false;
-        profile ??= new ProfileView(settings, store, RefreshProfile);
+        profile ??= new ProfileView(settings, store, RefreshProfile, runningModel);
         PageHost.Content = profile;
         ProfileButton.SetResourceReference(BackgroundProperty, "TintBrush");
     }

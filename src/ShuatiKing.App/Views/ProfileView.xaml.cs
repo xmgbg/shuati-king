@@ -16,12 +16,13 @@ public partial class ProfileView : UserControl
     private bool initializing = true;
     private string? avatar;
 
-    public ProfileView(LocalSettings settings, SettingsStore store, Action profileUpdated)
+    public ProfileView(LocalSettings settings, SettingsStore store, Action profileUpdated, string runningModel)
     {
         this.settings = settings;
         this.store = store;
         this.profileUpdated = profileUpdated;
         InitializeComponent();
+        AiHost.Content = new AiSettingsView(settings, store, runningModel);
         NicknameInput.Text = settings.Nickname;
         avatar = settings.Avatar;
         UpdateAvatar();

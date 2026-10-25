@@ -42,7 +42,7 @@
       </StackPanel>
      </Border>
     </StackPanel>
-    <Border Grid.Column="2" Style="{StaticResource Panel}" VerticalAlignment="Top"><ContentControl x:Name="AiHost"><TextBlock Text="AI 配置界面正在接入"/></ContentControl></Border>
+    <Border Grid.Column="2" Style="{StaticResource Panel}" VerticalAlignment="Top"><ContentControl x:Name="AiHost"/></Border>
    </Grid>
   </StackPanel>
  </ScrollViewer>

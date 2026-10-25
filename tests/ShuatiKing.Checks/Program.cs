@@ -16,6 +16,8 @@ internal static class Program
     {
         var app = new App();
         app.InitializeComponent();
+        app.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
         var settingsPath = Path.GetFullPath($".artifacts/check-settings-{Guid.NewGuid()}.dat");
         var store = new SettingsStore(settingsPath);
         var window = new MainWindow(store);
@@ -50,9 +52,78 @@ internal static class Program
         Capture(window, "profile-dark");
         ((RadioButton)profile.FindName("LightTheme")).IsChecked = true;
         Capture(window, "profile-light");
+        var ai = (AiSettingsView)((ContentControl)profile.FindName("AiHost")).Content;
+        var tabs = (ListBox)ai.FindName("ConfigurationTabs");
+        var add = (Button)ai.FindName("AddButton");
+        Check(!((Button)ai.FindName("CheckButton")).IsEnabled, "未填完整不能检查连接");
+        Fill(ai, "日常出题", "model-one");
+        Click(ai, "SaveConfigurationButton");
+        Check(store.Load().Configurations[0].ApiKey == "test-secret-only", "密钥加密后可恢复");
+        Check(!File.ReadAllText(settingsPath).Contains("test-secret-only"), "磁盘中没有明文密钥");
+        Check(((Border)ai.FindName("RestartNotice")).Visibility == Visibility.Visible, "当前模型变更提示重启");
+        add.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Fill(ai, "备用服务", "model-two"); Click(ai, "SaveConfigurationButton");
+        Check(store.Load().SelectedConfigurationId != ((AiConfiguration)tabs.SelectedItem).Id, "保存备用配置不自动切换");
+        Click(ai, "UseConfigurationButton");
+        Check(store.Load().SelectedConfigurationId == ((AiConfiguration)tabs.SelectedItem).Id, "选择当前配置保存");
+        add.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Fill(ai, "长文资料", "model-three"); Click(ai, "SaveConfigurationButton");
+        Check(tabs.Items.Count == 3 && !add.IsEnabled, "最多三套配置");
+        add.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Check(tabs.Items.Count == 3, "不能新增第四套");
+        tabs.SelectedIndex = 1;
+        var operation = ai.PreviewConnectionAsync();
+        Check(!((Button)ai.FindName("CheckButton")).IsEnabled && ((TextBlock)ai.FindName("ConnectionFeedback")).Text.Contains("正在检查"), "正在检查状态与防重复点击");
+        Check(ai.PreviewConnectionAsync().IsCompleted, "重复检查不会启动新任务");
+        Complete(operation, window.Dispatcher);
+        Check(((TextBlock)ai.FindName("ConnectionFeedback")).Text.Contains("HTTP 200"), "成功状态");
+        ((TextBox)ai.FindName("ModelInput")).Text = "model-two-edited";
+        Check(((Border)ai.FindName("ConnectionResult")).Visibility == Visibility.Collapsed, "修改后旧结果失效");
+        var result = (ComboBox)ai.FindName("PreviewResult");
+        result.SelectedIndex = 1;
+        Complete(ai.PreviewConnectionAsync(), window.Dispatcher);
+        Check(((TextBlock)ai.FindName("ConnectionFeedback")).Text.Contains("HTTP 401"), "失败状态含状态码");
+        result.SelectedIndex = 5;
+        Complete(ai.PreviewConnectionAsync(), window.Dispatcher);
+        Check(((TextBlock)ai.FindName("ConnectionFeedback")).Text.Contains("LOCAL_TIMEOUT（本地错误码）"), "无响应显示本地错误码");
+        Click(ai, "SaveConfigurationButton");
+        window.Height = 1150;
+        Capture(window, "profile-complete-light");
+        ((RadioButton)profile.FindName("DarkTheme")).IsChecked = true;
+        Capture(window, "profile-complete-dark");
+        window.Width = 1120; window.Height = 720;
+        Capture(window, "profile-compact");
+        ((RadioButton)profile.FindName("LightTheme")).IsChecked = true;
         window.Close();
+        var reopened = new MainWindow(store);
+        reopened.Show();
+        ((Button)reopened.FindName("ProfileButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        reopened.UpdateLayout();
+        var restoredProfile = (ProfileView)((ContentControl)reopened.FindName("PageHost")).Content;
+        var restoredAi = (AiSettingsView)((ContentControl)restoredProfile.FindName("AiHost")).Content;
+        Check(((Border)restoredAi.FindName("RestartNotice")).Visibility == Visibility.Collapsed, "重开后模型生效且不再提示重启");
+        Check(((TextBlock)reopened.FindName("NicknameText")).Text == "小马", "重开恢复昵称");
+        reopened.Close();
         File.Delete(settingsPath);
-        Console.WriteLine("通过：首页切换、窗口渲染、昵称同步、字号、深浅主题及加密设置往返。");
+        Console.WriteLine("通过：首页切换、个人设置恢复、三配置上限、模型重启提示、连接状态和深浅主题渲染。");
+    }
+
+    private static void Fill(AiSettingsView ai, string name, string model)
+    {
+        ((TextBox)ai.FindName("NameInput")).Text = name;
+        ((TextBox)ai.FindName("EndpointInput")).Text = "https://api.example.com/v1";
+        ((PasswordBox)ai.FindName("KeyInput")).Password = "test-secret-only";
+        ((TextBox)ai.FindName("ModelInput")).Text = model;
+    }
+
+    private static void Click(FrameworkElement parent, string name) => ((Button)parent.FindName(name)).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+
+    private static void Complete(Task operation, Dispatcher dispatcher)
+    {
+        var frame = new DispatcherFrame();
+        operation.ContinueWith(_ => dispatcher.BeginInvoke(() => frame.Continue = false));
+        Dispatcher.PushFrame(frame);
+        operation.GetAwaiter().GetResult();
     }
 
     internal static IEnumerable<T> Descendants<T>(DependencyObject parent) where T : DependencyObject
