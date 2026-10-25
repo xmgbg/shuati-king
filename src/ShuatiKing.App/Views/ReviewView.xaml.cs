@@ -20,12 +20,11 @@ public partial class ReviewView : UserControl
     {
         this.library = library; this.back = back; this.home = home;
         InitializeComponent();
-        ReturnButton.Content = fromImport ? "‹ 返回资料" : "‹ 返回题库";
+        ReturnButton.Visibility = fromImport ? Visibility.Visible : Visibility.Collapsed;
         LibraryCaption.Text = library.Name + " · " + library.Source;
         OriginalText.Text = string.IsNullOrEmpty(library.SourceText) ? "当前题库为示例数据，没有原始文档。" : library.SourceText;
         QuestionPreview.FontSize = questionFontSize;
         loading = false; RefreshList();
-        Unloaded += (_, _) => SaveEditor();
     }
 
     private void FilterChanged(object sender, RoutedEventArgs e)
@@ -197,6 +196,8 @@ public partial class ReviewView : UserControl
         SelectionCount.Text = $"已勾选 {library.Questions.Count(q => q.BatchSelected)}";
         ExportButton.IsEnabled = library.ConfirmedCount > 0;
     }
+
+    public void SaveDraft() => SaveEditor();
 
     private void Return(object sender, RoutedEventArgs e) { SaveEditor(); back(); }
     private void Home(object sender, RoutedEventArgs e) { SaveEditor(); home(); }

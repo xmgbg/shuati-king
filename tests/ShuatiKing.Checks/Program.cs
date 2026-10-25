@@ -109,6 +109,7 @@ internal static class Program
         ((RadioButton)profile.FindName("LightTheme")).IsChecked = true;
         ImportChecks.Run(window);
         ReviewChecks.Run(window);
+        WorkflowChecks.Run(window);
         window.Close();
         var withAvatar = store.Load();
         withAvatar.Avatar = Convert.ToBase64String(File.ReadAllBytes("assets/logo.png"));

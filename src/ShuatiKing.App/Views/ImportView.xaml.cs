@@ -38,6 +38,11 @@ public partial class ImportView : UserControl
     {
         var picker = new OpenFileDialog { Title = "选择资料", Filter = "文字型 PDF 或 Word|*.pdf;*.docx" };
         if (picker.ShowDialog() != true) return;
+        if (CurrentLibrary?.Count > 0)
+        {
+            CurrentLibrary = null; recognized = false;
+            ResultPanel.Visibility = Visibility.Collapsed;
+        }
         fileName = Path.GetFileName(picker.FileName); SelectedFile.Text = fileName;
         LibraryNameInput.Text = Path.GetFileNameWithoutExtension(fileName); SourceInput.Clear();
         FormFeedback.Text = "文件已选择；本轮尚未解析，请载入示例内容后预览。";
@@ -66,7 +71,9 @@ public partial class ImportView : UserControl
         else if (step == 1)
         {
             if (string.IsNullOrWhiteSpace(PreviewInput.Text)) { FormFeedback.Text = "预览内容不能为空，请补充文字。"; return; }
-            SourceInput.Text = PreviewInput.Text; step = 2;
+            SourceInput.Text = PreviewInput.Text;
+            CurrentLibrary?.UpdateSource(LibraryNameInput.Text.Trim(), FileMode.IsChecked == true ? fileName! : "粘贴文字", PreviewInput.Text);
+            step = 2;
         }
         else if (CurrentLibrary?.Count > 0) { review(CurrentLibrary); return; }
         UpdatePage();
@@ -135,7 +142,11 @@ public partial class ImportView : UserControl
             foreach (var question in added) CurrentLibrary.Questions.Add(question);
             if (existing) recognized = true;
             CurrentLibrary.NotifyChanged(); draftsChanged(CurrentLibrary);
-            GenerationFeedback.Text = existing ? "示例识别完成，含一题缺答案。原文已保留，可在审核页人工修正。" : scenario == "partial" ? $"本次仅返回 {added.Count} 道合格示例草稿，已保留全部结果。可审核已有草稿，或切换成功状态补充缺题。" : $"本次新增 {added.Count} 道示例草稿，确认前均不可练习。";
+            var missing = existing ? 0 : WorkflowPreview.MissingQuestions(CurrentLibrary, targets).Count;
+            GenerationFeedback.Text = existing ? "示例识别完成，含一题缺答案。原文已保留，可在审核页人工修正。"
+                : missing > 0 ? $"本次返回 {added.Count} 道示例草稿，仍缺 {missing} 道。已有结果已保留，可审核草稿或切换成功状态补充。"
+                : added.Count == 0 ? "已满足目标题量，无需重复生成，可以继续审核。"
+                : $"本次新增 {added.Count} 道示例草稿，目标题量已满足；确认前均不可练习。";
         }
         ActualCounts.Text = $"实际共 {CurrentLibrary.Count} 道：单选 {CurrentLibrary.Single} / 多选 {CurrentLibrary.Multiple} / 判断 {CurrentLibrary.Judgment} / 填空 {CurrentLibrary.Blank}";
         generating = false;

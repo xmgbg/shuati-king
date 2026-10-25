@@ -41,6 +41,7 @@ public partial class MainWindow : Window
     private void Navigate(object sender, RoutedEventArgs e)
     {
         if (PageHost is null) return;
+        if (PageHost.Content is ReviewView review) review.SaveDraft();
         ProfileButton.SetResourceReference(BackgroundProperty, "SurfaceBrush");
         var title = ((RadioButton)sender).Content.ToString()!;
         if (title == "题库") PageHost.Content = library;
@@ -49,6 +50,7 @@ public partial class MainWindow : Window
 
     private void ProfileClick(object sender, RoutedEventArgs e)
     {
+        if (PageHost.Content is ReviewView review) review.SaveDraft();
         foreach (var tab in NavigationTabs.Children.OfType<RadioButton>()) tab.IsChecked = false;
         profile ??= new ProfileView(settings, store, RefreshProfile, runningModel);
         PageHost.Content = profile;
