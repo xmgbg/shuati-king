@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/logo.png" alt="刷题KING LOGO" width="112" />
+  <img src="assets/logo-animated.gif" alt="刷题KING 动态 LOGO" width="112" />
   <h1>刷题KING</h1>
   <p><strong>把学习资料，变成自己的刷题工作台。</strong></p>
   <p>面向 PDF、Word 与文本资料的 Windows 桌面刷题工具</p>
