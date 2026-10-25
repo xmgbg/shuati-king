@@ -108,6 +108,7 @@ internal static class Program
         Capture(window, "profile-compact-bottom");
         ((RadioButton)profile.FindName("LightTheme")).IsChecked = true;
         ImportChecks.Run(window);
+        ReviewChecks.Run(window);
         window.Close();
         var withAvatar = store.Load();
         withAvatar.Avatar = Convert.ToBase64String(File.ReadAllBytes("assets/logo.png"));
@@ -126,7 +127,7 @@ internal static class Program
         Check(store.Load().Avatar is null, "恢复默认头像后保存");
         reopened.Close();
         File.Delete(settingsPath);
-        Console.WriteLine($"通过 {assertions} 项校验：首页切换、个人设置恢复、三配置上限、模型重启提示、连接状态和深浅主题渲染。");
+        Console.WriteLine($"通过 {assertions} 项校验：首页、个人设置、导入出题、题目编辑审核及题库包入口。");
     }
 
     private static void CaptureFullProfile(FrameworkElement content, string name)

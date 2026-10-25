@@ -67,13 +67,27 @@ public partial class MainWindow : Window
             importView ??= new ImportView(ShowReview, library.AddLibrary, ShowLibrary);
             PageHost.Content = importView;
         }
+        else if (action == "导入题库")
+        {
+            var dialog = new PackageDialog(added => { library.AddLibrary(added); ShowLibrary(); }) { Owner = this };
+            dialog.ShowDialog();
+        }
         else if (action == "题目管理" && selected is not null) ShowReview(selected);
         else ShowPlaceholder(action);
     }
 
     private void ShowLibrary() { PageHost.Content = library; LibraryTab.IsChecked = true; }
 
-    private void ShowReview(SampleLibrary selected) => ShowPlaceholder(selected.Name + " · 题目审核");
+    private void ShowReview(SampleLibrary selected)
+    {
+        var origin = importView?.CurrentLibrary == selected ? importView : null;
+        var review = new ReviewView(selected,
+            () => { if (origin is not null) PageHost.Content = origin; else ShowLibrary(); },
+            () => { if (origin is not null) importView = null; ShowLibrary(); },
+            settings.QuestionFontSize, origin is not null);
+        review.ExportRequested += bank => new PackageDialog(bank) { Owner = this }.ShowDialog();
+        PageHost.Content = review;
+    }
 
     private void RefreshProfile()
     {

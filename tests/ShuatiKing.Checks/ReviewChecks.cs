@@ -1,0 +1,91 @@
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using ShuatiKing.Models;
+using ShuatiKing.Services;
+using ShuatiKing.Views;
+
+internal static class ReviewChecks
+{
+    internal static void Run(Window window)
+    {
+        window.Width = 1440; window.Height = 900;
+        ((RadioButton)window.FindName("LibraryTab")).IsChecked = true;
+        var host = (ContentControl)window.FindName("PageHost");
+        var bank = new SampleLibrary("网络资料审核", "复习题.docx") { SourceText = "RAW_SOURCE_PRIVATE：保留的未识别原文。" };
+        foreach (var q in WorkflowPreview.ExistingExamples(bank.Name)) bank.Questions.Add(q);
+        var review = new ReviewView(bank, () => { }, () => { }, 20, true);
+        host.Content = review; window.UpdateLayout();
+        var list = (ListBox)review.FindName("QuestionList");
+        var all = (CheckBox)review.FindName("SelectAllCheck");
+        all.IsChecked = true; all.RaiseEvent(new RoutedEventArgs(CheckBox.ClickEvent));
+        Click(review, "BatchConfirmButton");
+        Program.Check(bank.ConfirmedCount == 3 && bank.IncompleteCount == 1, "批量确认入库三个有效题目并拦截缺答案题");
+        Program.Check(((TextBlock)review.FindName("ReviewFeedback")).Text.Contains("1 道题尚未补全"), "批量确认明确提示被拦住的题目");
+        ((RadioButton)review.FindName("IncompleteFilter")).IsChecked = true;
+        Program.Check(list.Items.Count == 1 && review.CurrentQuestion!.Type == QuestionType.Judgment, "待补全筛选定位缺答案判断题");
+        Click(review, "ConfirmQuestionButton");
+        Program.Check(bank.ConfirmedCount == 3, "单题缺答案同样不能入库");
+        Program.Capture(window, "review-incomplete-light");
+        ((RadioButton)review.FindName("TrueAnswer")).IsChecked = true;
+        Click(review, "ConfirmQuestionButton");
+        Program.Check(bank.ConfirmedCount == 4 && list.Items.Count == 0, "补全答案后可确认并离开待补全分类");
+        ((RadioButton)review.FindName("AllFilter")).IsChecked = true;
+        list.SelectedIndex = 3;
+        ((TextBox)review.FindName("BlankAnswersInput")).Text = "传输控制协议 | TCP\n用户数据报协议 | UDP";
+        Click(review, "SaveQuestionButton");
+        Program.Check(bank.Questions[3].BlankAnswers.Count == 2 && bank.Questions[3].BlankAnswers.All(a => a.Count == 2), "逐空保存多个可接受答案");
+        Program.Check(!bank.Questions[3].IsConfirmed, "修改已入库题目后必须重新审核");
+        ((TextBox)review.FindName("StemInput")).Text = "只有一个 ____。";
+        Click(review, "ConfirmQuestionButton");
+        Program.Check(!bank.Questions[3].IsConfirmed, "题干空数与答案空数不符不能确认");
+        ((TextBox)review.FindName("StemInput")).Text = "TCP 中文名称是 ____，UDP 中文名称是 ____。";
+        Click(review, "ConfirmQuestionButton");
+        Program.Check(bank.Questions[3].IsConfirmed, "修正空数后可入库");
+        Program.Capture(window, "review-blank-light");
+        list.SelectedIndex = 0;
+        var type = (ComboBox)review.FindName("QuestionTypeInput");
+        type.SelectedIndex = 1;
+        Click(review, "SaveQuestionButton");
+        Program.Check(bank.Questions[0].Type == QuestionType.Multiple && !bank.Questions[0].IsConfirmed && bank.Questions[0].ValidationError is not null, "改为多选后检查答案数量");
+        var rows = (StackPanel)review.FindName("OptionsPanel");
+        ((Grid)rows.Children[0]).Children.OfType<CheckBox>().Single().IsChecked = true;
+        Click(review, "ConfirmQuestionButton");
+        Program.Check(bank.Questions[0].IsConfirmed && bank.Questions[0].CorrectOptions.Count == 2, "多选可勾选全部正确选项并确认");
+        type.SelectedIndex = 0;
+        Click(review, "ConfirmQuestionButton");
+        Program.Check(bank.Questions[0].IsConfirmed && bank.Questions[0].CorrectOptions.Count == 1, "改单选后保留一个答案");
+        Click(review, "AddOptionButton");
+        Click(review, "SaveQuestionButton");
+        Program.Check(bank.Questions[0].Options.Count == 5 && !bank.Questions[0].IsConfirmed, "新增空选项暂存且不可直接入库");
+        ((Grid)rows.Children[4]).Children.OfType<TextBox>().Single().Text = "新增选项";
+        Click(review, "ConfirmQuestionButton");
+        Program.Check(bank.Questions[0].IsConfirmed, "补全选项后可入库");
+        ((Grid)rows.Children[0]).Children.OfType<Button>().Single().RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Click(review, "SaveQuestionButton");
+        Program.Check(bank.Questions[0].CorrectOptions.Count == 0 && !bank.Questions[0].IsConfirmed, "删除正确选项后不把答案错移到其他选项");
+        ((Grid)rows.Children[0]).Children.OfType<RadioButton>().Single().IsChecked = true;
+        Click(review, "ConfirmQuestionButton");
+        ((TextBox)review.FindName("StemInput")).Text = "切换题目时保留的修改";
+        list.SelectedIndex = 1;
+        Program.Check(bank.Questions[0].Stem == "切换题目时保留的修改" && !bank.Questions[0].IsConfirmed, "切换题目自动保存草稿并撤销原确认状态");
+        ThemeManager.Apply("深色"); Program.Capture(window, "review-dark");
+        window.Width = 1120; window.Height = 720; Program.Capture(window, "review-compact");
+        Program.Check(((Button)review.FindName("ConfirmQuestionButton")).ActualWidth > 100, "最小窗口确认按钮仍有操作空间");
+        ThemeManager.Apply("浅色");
+        var export = new PackageDialog(bank) { Owner = window };
+        export.Show(); export.UpdateLayout();
+        Program.Check(!((TextBox)export.FindName("PackageContent")).Text.Contains("RAW_SOURCE_PRIVATE"), "导出内容预览不泄露原文");
+        Program.Capture(export, "package-export"); export.Close();
+        SampleLibrary? imported = null;
+        var import = new PackageDialog(added => imported = added) { Owner = window };
+        import.Show(); import.UpdateLayout();
+        Program.Check(!((Button)import.FindName("PackageConfirmButton")).IsEnabled, "未载入题库预览不能确认导入");
+        Click(import, "LoadPackageExampleButton");
+        Program.Capture(import, "package-import");
+        Click(import, "PackageConfirmButton");
+        Program.Check(imported is not null && !ReferenceEquals(imported, bank) && imported.ConfirmedCount == 8 && imported.Source == "网络复习.pdf", "示例题库包导入为独立题库且保留资料名称");
+    }
+
+    private static void Click(FrameworkElement parent, string name) => ((Button)parent.FindName(name)).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+}

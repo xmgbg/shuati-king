@@ -8,6 +8,7 @@ internal static class ImportChecks
 {
     internal static void Run(Window window)
     {
+        ((RadioButton)window.FindName("LibraryTab")).IsChecked = true;
         var host = (ContentControl)window.FindName("PageHost");
         SampleLibrary? saved = null;
         var import = new ImportView(_ => { }, library => saved = library, () => { });
