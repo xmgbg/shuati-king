@@ -15,6 +15,7 @@ internal static class Program
     [STAThread]
     private static void Main()
     {
+        QuestionChecks.Run();
         var app = new App();
         app.InitializeComponent();
         app.ShutdownMode = ShutdownMode.OnExplicitShutdown;
