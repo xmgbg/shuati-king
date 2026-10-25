@@ -87,7 +87,14 @@ public partial class ProfileView : UserControl
         if (initializing) return;
         var previous = settings.Theme;
         settings.Theme = ((RadioButton)sender).Tag.ToString()!;
-        if (!TrySave(out var error)) { settings.Theme = previous; PreferenceFeedback.Text = error; return; }
+        if (!TrySave(out var error))
+        {
+            settings.Theme = previous;
+            initializing = true;
+            (previous switch { "深色" => DarkTheme, "跟随系统" => SystemTheme, _ => LightTheme }).IsChecked = true;
+            initializing = false;
+            PreferenceFeedback.Text = error; return;
+        }
         ThemeManager.Apply(settings.Theme); PreferenceFeedback.Text = "主题已保存，即时生效。";
     }
 
@@ -96,7 +103,14 @@ public partial class ProfileView : UserControl
         if (initializing) return;
         var previous = settings.QuestionFontSize;
         settings.QuestionFontSize = int.Parse(((RadioButton)sender).Tag.ToString()!);
-        if (!TrySave(out var error)) { settings.QuestionFontSize = previous; PreferenceFeedback.Text = error; return; }
+        if (!TrySave(out var error))
+        {
+            settings.QuestionFontSize = previous;
+            initializing = true;
+            ((RadioButton)FindName("Font" + previous)).IsChecked = true;
+            initializing = false;
+            PreferenceFeedback.Text = error; return;
+        }
         QuestionPreview.FontSize = settings.QuestionFontSize; PreferenceFeedback.Text = "题目字号已保存。";
     }
 }

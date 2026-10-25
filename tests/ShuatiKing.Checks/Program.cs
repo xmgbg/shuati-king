@@ -11,6 +11,7 @@ using ShuatiKing.Models;
 
 internal static class Program
 {
+    private static int assertions;
     [STAThread]
     private static void Main()
     {
@@ -87,14 +88,28 @@ internal static class Program
         Complete(ai.PreviewConnectionAsync(), window.Dispatcher);
         Check(((TextBlock)ai.FindName("ConnectionFeedback")).Text.Contains("LOCAL_TIMEOUT（本地错误码）"), "无响应显示本地错误码");
         Click(ai, "SaveConfigurationButton");
+        var profileScroll = Descendants<ScrollViewer>(profile).First();
+        profileScroll.ScrollToBottom(); window.UpdateLayout();
+        Capture(window, "profile-connection-light");
+        CaptureFullProfile((FrameworkElement)profileScroll.Content, "profile-full-light");
+        ((RadioButton)profile.FindName("DarkTheme")).IsChecked = true;
+        Capture(window, "profile-connection-dark");
+        ((RadioButton)profile.FindName("LightTheme")).IsChecked = true;
+        profileScroll.ScrollToTop();
         window.Height = 1150;
         Capture(window, "profile-complete-light");
         ((RadioButton)profile.FindName("DarkTheme")).IsChecked = true;
         Capture(window, "profile-complete-dark");
         window.Width = 1120; window.Height = 720;
         Capture(window, "profile-compact");
+        profileScroll.ScrollToBottom(); window.UpdateLayout();
+        Check(profileScroll.VerticalOffset > 0, "小窗口可滚动至下方连接结果");
+        Capture(window, "profile-compact-bottom");
         ((RadioButton)profile.FindName("LightTheme")).IsChecked = true;
         window.Close();
+        var withAvatar = store.Load();
+        withAvatar.Avatar = Convert.ToBase64String(File.ReadAllBytes("assets/logo.png"));
+        store.Save(withAvatar);
         var reopened = new MainWindow(store);
         reopened.Show();
         ((Button)reopened.FindName("ProfileButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -103,9 +118,29 @@ internal static class Program
         var restoredAi = (AiSettingsView)((ContentControl)restoredProfile.FindName("AiHost")).Content;
         Check(((Border)restoredAi.FindName("RestartNotice")).Visibility == Visibility.Collapsed, "重开后模型生效且不再提示重启");
         Check(((TextBlock)reopened.FindName("NicknameText")).Text == "小马", "重开恢复昵称");
+        Check(((System.Windows.Media.Imaging.BitmapImage)((Image)restoredProfile.FindName("ProfileAvatar")).Source).PixelWidth > 0, "重开后读取本地头像图片");
+        Descendants<Button>(restoredProfile).Single(b => b.Content?.ToString() == "恢复默认").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Descendants<Button>(restoredProfile).Single(b => b.Content?.ToString() == "保存个人资料").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Check(store.Load().Avatar is null, "恢复默认头像后保存");
         reopened.Close();
         File.Delete(settingsPath);
-        Console.WriteLine("通过：首页切换、个人设置恢复、三配置上限、模型重启提示、连接状态和深浅主题渲染。");
+        Console.WriteLine($"通过 {assertions} 项校验：首页切换、个人设置恢复、三配置上限、模型重启提示、连接状态和深浅主题渲染。");
+    }
+
+    private static void CaptureFullProfile(FrameworkElement content, string name)
+    {
+        var width = (int)Math.Ceiling(content.ActualWidth);
+        var height = (int)Math.Ceiling(content.ActualHeight);
+        var visual = new DrawingVisual();
+        using (var context = visual.RenderOpen())
+        {
+            context.DrawRectangle((Brush)Application.Current.FindResource("CanvasBrush"), null, new Rect(0, 0, width, height));
+            context.DrawRectangle(new VisualBrush(content) { Stretch = Stretch.Fill }, null, new Rect(0, 0, width, height));
+        }
+        var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+        bitmap.Render(visual);
+        using var file = File.Create($".artifacts/{name}.png");
+        var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap)); encoder.Save(file);
     }
 
     private static void Fill(AiSettingsView ai, string name, string model)
@@ -139,6 +174,7 @@ internal static class Program
     internal static void Check(bool value, string message)
     {
         if (!value) throw new InvalidOperationException(message);
+        assertions++;
     }
 
     internal static void Capture(Window window, string name)

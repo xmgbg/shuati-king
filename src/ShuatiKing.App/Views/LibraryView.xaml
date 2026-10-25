@@ -42,7 +42,7 @@
       <ListBox.ItemTemplate><DataTemplate>
        <Grid>
         <Grid.ColumnDefinitions><ColumnDefinition Width="1.45*"/><ColumnDefinition Width="1.25*"/><ColumnDefinition Width="80"/><ColumnDefinition Width="90"/></Grid.ColumnDefinitions>
-        <Grid Margin="0,0,12,0"><Grid.ColumnDefinitions><ColumnDefinition Width="36"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="&#xE8A5;" Style="{StaticResource Icon}" FontSize="28" Foreground="{Binding Color}"/><TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" FontSize="16" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}"/></Grid>
+        <Grid Margin="0,0,12,0"><Grid.ColumnDefinitions><ColumnDefinition Width="36"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="&#xE7C3;" Style="{StaticResource Icon}" FontSize="28" Foreground="{Binding Color}"/><TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" FontSize="18" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}"/></Grid>
         <TextBlock Grid.Column="1" Text="{Binding Source}" Style="{StaticResource MutedText}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Source}" Margin="0,0,12,0"/>
         <TextBlock Grid.Column="2" Text="{Binding Count, StringFormat={}{0} 题}"/>
         <Border Grid.Column="3" Style="{StaticResource StatusBadge}"><TextBlock Text="{Binding Status}" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=Tag}" FontWeight="SemiBold" HorizontalAlignment="Center"/></Border>
@@ -55,8 +55,8 @@
      <StackPanel>
       <TextBlock Text="题库详情" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,26"/>
       <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-       <TextBlock Text="&#xE8A5;" Style="{StaticResource Icon}" FontSize="46" Foreground="{Binding Color}" VerticalAlignment="Top" Margin="0,4,0,0"/>
-       <StackPanel Grid.Column="1"><TextBlock Text="{Binding Name}" FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="{Binding Source, StringFormat=来源：{0}}" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,8,0,14"/><WrapPanel><TextBlock Text="{Binding Count, StringFormat={}{0} 题}" FontSize="18" Margin="0,0,16,0"/><Border Style="{StaticResource StatusBadge}"><TextBlock Text="{Binding Status}" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=Tag}" FontWeight="SemiBold"/></Border></WrapPanel></StackPanel>
+       <TextBlock Text="&#xE7C3;" Style="{StaticResource Icon}" FontSize="46" Foreground="{Binding Color}" VerticalAlignment="Top" Margin="0,4,0,0"/>
+       <StackPanel Grid.Column="1"><TextBlock Text="{Binding Name}" FontSize="24" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="{Binding Source, StringFormat=来源：{0}}" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,8,0,14"/><WrapPanel><TextBlock Text="{Binding Count, StringFormat={}{0} 题}" FontSize="18" Margin="0,0,16,0"/><Border Style="{StaticResource StatusBadge}"><TextBlock Text="{Binding Status}" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=Tag}" FontWeight="SemiBold"/></Border></WrapPanel></StackPanel>
       </Grid>
       <Border Height="1" Background="{DynamicResource LineBrush}" Margin="0,24"/>
       <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>

@@ -122,7 +122,8 @@ public partial class AiSettingsView : UserControl
         ActiveConfiguration.Text = $"当前选用：{current.Name} · {(string.IsNullOrWhiteSpace(current.Model) ? "未设置模型" : current.Model)}";
         RunningModel.Text = $"本次启动模型：{(string.IsNullOrWhiteSpace(runningModel) ? "未设置" : runningModel)}";
         RestartNotice.Visibility = current.Model.Trim() != runningModel ? Visibility.Visible : Visibility.Collapsed;
-        UseConfigurationButton.Content = Selected.Id == current.Id ? "当前配置 · 保存并应用" : "设为当前配置";
+        UseConfigurationButton.Content = Selected.Id == current.Id ? "已选为当前" : "设为当前配置";
+        UseConfigurationButton.IsEnabled = Selected.Id != current.Id;
     }
 
     private void PreviewResultChanged(object sender, SelectionChangedEventArgs e)
