@@ -77,8 +77,6 @@ cd shuati-king
 dotnet run --project src/ShuatiKing.App
 ```
 
-也可以双击根目录的 [`启动预览.cmd`](启动预览.cmd)。脚本优先使用 `.tools/dotnet` 中的本地 SDK，否则使用系统安装的 `dotnet`。
-
 ## 构建与校验
 
 ```powershell
@@ -115,6 +113,5 @@ shuati-king/
 │  ├─ Services/                  # 设置存储、主题与连接状态演示
 │  ├─ Styles/                    # 共享控件样式和颜色资源
 │  └─ Views/                     # 题库首页、个人资料与 AI 配置
-├─ tests/ShuatiKing.Checks/       # 界面与交互校验
-└─ 启动预览.cmd                  # 本地启动入口
+└─ tests/ShuatiKing.Checks/       # 界面与交互校验
 ```
