@@ -1,10 +1,12 @@
 using System.Windows;
 using System.Windows.Controls;
+using ShuatiKing.Views;
 
 namespace ShuatiKing;
 
 public partial class MainWindow : Window
 {
+    private readonly LibraryView library = new();
     public MainWindow()
     {
         InitializeComponent();
@@ -14,10 +16,16 @@ public partial class MainWindow : Window
     private void Navigate(object sender, RoutedEventArgs e)
     {
         if (PageHost is null) return;
-        ShowPlaceholder(((RadioButton)sender).Tag.ToString()!);
+        var title = ((RadioButton)sender).Content.ToString()!;
+        if (title == "题库") PageHost.Content = library;
+        else ShowPlaceholder(title);
     }
 
-    private void ProfileClick(object sender, RoutedEventArgs e) => ShowPlaceholder("我的");
+    private void ProfileClick(object sender, RoutedEventArgs e)
+    {
+        foreach (var tab in NavigationTabs.Children.OfType<RadioButton>()) tab.IsChecked = false;
+        ShowPlaceholder("我的");
+    }
 
     private void ShowPlaceholder(string title) => PageHost.Content = new TextBlock
     {

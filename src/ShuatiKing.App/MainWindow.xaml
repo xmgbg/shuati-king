@@ -1,5 +1,5 @@
 <Window x:Class="ShuatiKing.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
- Title="刷题KING" Width="1440" Height="900" MinWidth="1080" MinHeight="720" Icon="Assets/logo.png" WindowStartupLocation="CenterScreen">
+ Style="{StaticResource {x:Type Window}}" Title="刷题KING" Width="1440" Height="900" MinWidth="1120" MinHeight="720" Icon="Assets/logo.png" WindowStartupLocation="CenterScreen">
  <Grid>
   <Grid.RowDefinitions><RowDefinition Height="80" /><RowDefinition Height="*" /><RowDefinition Height="32" /></Grid.RowDefinitions>
   <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1">
@@ -11,12 +11,12 @@
      </StackPanel>
     </Button>
     <Border Width="1" Background="{DynamicResource LineBrush}" Height="34" Margin="0,0,12,0" />
-    <StackPanel Orientation="Horizontal">
-     <RadioButton x:Name="LibraryTab" Style="{StaticResource NavTab}" GroupName="Navigation" Content="题库" Tag="题库" Checked="Navigate" />
-     <RadioButton Style="{StaticResource NavTab}" GroupName="Navigation" Content="刷题" Tag="刷题" Checked="Navigate" />
-     <RadioButton Style="{StaticResource NavTab}" GroupName="Navigation" Content="模拟考试" Tag="模拟考试" Checked="Navigate" />
-     <RadioButton Style="{StaticResource NavTab}" GroupName="Navigation" Content="错题本" Tag="错题本" Checked="Navigate" />
-     <RadioButton Style="{StaticResource NavTab}" GroupName="Navigation" Content="考试记录" Tag="考试记录" Checked="Navigate" />
+    <StackPanel x:Name="NavigationTabs" Orientation="Horizontal">
+     <RadioButton x:Name="LibraryTab" Style="{StaticResource NavTab}" GroupName="Navigation" Content="题库" Tag="&#xE8A5;" Checked="Navigate" />
+     <RadioButton Style="{StaticResource NavTab}" GroupName="Navigation" Content="刷题" Tag="&#xE70F;" Checked="Navigate" />
+     <RadioButton Style="{StaticResource NavTab}" GroupName="Navigation" Content="模拟考试" Tag="&#xE8F1;" Checked="Navigate" />
+     <RadioButton Style="{StaticResource NavTab}" GroupName="Navigation" Content="错题本" Tag="&#xE711;" Checked="Navigate" />
+     <RadioButton Style="{StaticResource NavTab}" GroupName="Navigation" Content="考试记录" Tag="&#xE81C;" Checked="Navigate" />
     </StackPanel>
    </DockPanel>
   </Border>
