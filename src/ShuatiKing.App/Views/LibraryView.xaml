@@ -16,9 +16,9 @@
       <Grid>
        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="1.05*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
        <TextBlock Text="&#xE81C;" Style="{StaticResource Icon}" FontSize="38" Foreground="{DynamicResource AccentBrush}" Margin="0,0,18,0"/>
-       <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0"><TextBlock Text="继续上次练习" Style="{StaticResource MutedText}"/><TextBlock Text="计算机网络基础" FontWeight="SemiBold" FontSize="17" Margin="0,6,0,0"/></StackPanel>
-       <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="20,0,22,0"><TextBlock Text="23 / 60 题" FontSize="18" Margin="0,0,0,10"/><ProgressBar Value="23" Maximum="60" Height="8" Foreground="{DynamicResource AccentBrush}" Background="{DynamicResource LineBrush}" BorderThickness="0"/></StackPanel>
-       <Button Grid.Column="3" Content="继续练习" Style="{StaticResource PrimaryButton}" VerticalAlignment="Center" Click="PreviewAction" Tag="继续练习" Padding="18,10"/>
+       <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0"><TextBlock Text="继续上次练习" Style="{StaticResource MutedText}"/><TextBlock x:Name="ResumeBank" Text="计算机网络基础" FontWeight="SemiBold" FontSize="17" Margin="0,6,0,0"/></StackPanel>
+       <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="20,0,22,0"><TextBlock x:Name="ResumeFraction" Text="23 / 60 题" FontSize="18" Margin="0,0,0,10"/><ProgressBar x:Name="ResumeProgress" Value="23" Maximum="60" Height="8" Foreground="{DynamicResource AccentBrush}" Background="{DynamicResource LineBrush}" BorderThickness="0"/></StackPanel>
+       <Button x:Name="ResumeAction" Grid.Column="3" Content="继续练习" Style="{StaticResource PrimaryButton}" VerticalAlignment="Center" Click="PreviewAction" Tag="继续练习" Padding="18,10"/>
       </Grid>
      </Border>
      <Grid Margin="24,0,20,12">

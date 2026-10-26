@@ -93,4 +93,5 @@
    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="ChoiceBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/><Setter TargetName="ChoiceBorder" Property="BorderThickness" Value="2"/></Trigger>
   </ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
  </Style>
+ <DataTemplate x:Key="BankPickerTemplate"><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/></DataTemplate>
 </ResourceDictionary>
