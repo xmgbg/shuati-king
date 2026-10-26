@@ -47,9 +47,14 @@ internal static class ExamChecks
         Program.Check(state.Exam.Finished && state.Exam.Score == item.Points && state.Wrongs.Count == 3, "正式交卷按题型分值计分且未作答零分加入错题");
         Program.Capture(window, "exam-submitted");
         var timeoutState = new LearningState { Exam = LearningRules.CreateExam(bank, [1, 1, 1, 1], [1, 1, 1, 1], 1) };
-        timeoutState.Exam.RemainingSeconds = 0;
+        timeoutState.Exam.RemainingSeconds = 0.05;
         var timeout = new ExamView(timeoutState, new[] { bank }, () => { }, () => { }, () => 18);
-        host.Content = timeout; window.UpdateLayout(); Click(timeout, "ResumeExamButton"); Click(timeout, "ContinueExamButton"); timeout.Pulse();
+        host.Content = timeout; window.UpdateLayout(); Click(timeout, "ResumeExamButton"); Click(timeout, "ContinueExamButton");
+        var timeoutFrame = new System.Windows.Threading.DispatcherFrame();
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var guard = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
+        guard.Tick += (_, _) => { if (timeoutState.Exam.Finished || watch.Elapsed.TotalSeconds > 3) { guard.Stop(); timeoutFrame.Continue = false; } };
+        guard.Start(); System.Windows.Threading.Dispatcher.PushFrame(timeoutFrame);
         Program.Check(timeoutState.Exam.Finished && timeoutState.Exam.TimedOut && timeoutState.Exam.Score == 0 && ((TextBlock)timeout.FindName("ResultHeading")).Text.Contains("自动交卷"), "计时归零自动交卷并展示未作答零分");
         Program.Capture(window, "exam-timeout");
         var resumeView = new ExamView(restored, new[] { bank }, () => { }, () => { }, () => 18);

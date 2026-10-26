@@ -111,6 +111,8 @@ internal static class Program
         ImportChecks.Run(window);
         ReviewChecks.Run(window);
         WorkflowChecks.Run(window);
+        PracticeChecks.Run(window);
+        ExamChecks.Run(window);
         window.Close();
         var withAvatar = store.Load();
         withAvatar.Avatar = Convert.ToBase64String(File.ReadAllBytes("assets/logo.png"));
@@ -129,7 +131,9 @@ internal static class Program
         Check(store.Load().Avatar is null, "恢复默认头像后保存");
         reopened.Close();
         File.Delete(settingsPath);
-        Console.WriteLine($"通过 {assertions} 项校验：首页、个人设置、导入出题、题目编辑审核及题库包入口。");
+        File.Delete(store.LearningPath);
+        LearningNavigationChecks.Run();
+        Console.WriteLine($"通过 {assertions} 项校验：首页、个人设置、导入审核、练习错题与模拟考试。");
     }
 
     private static void CaptureFullProfile(FrameworkElement content, string name)

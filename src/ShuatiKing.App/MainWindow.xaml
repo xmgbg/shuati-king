@@ -21,6 +21,6 @@
    </DockPanel>
   </Border>
   <ContentControl x:Name="PageHost" Grid.Row="1" />
-  <Border Grid.Row="2" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Background="{DynamicResource SurfaceBrush}"><TextBlock Text="界面预览 · 草稿与审核结果仅在本次运行中保留" FontSize="12" Style="{StaticResource MutedText}" Margin="28,0" /></Border>
+  <Border Grid.Row="2" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Background="{DynamicResource SurfaceBrush}"><TextBlock Text="界面预览 · 资料导入仍为示例；练习、错题与考试进度在本机保存" FontSize="12" Style="{StaticResource MutedText}" Margin="28,0" /></Border>
  </Grid>
 </Window>
