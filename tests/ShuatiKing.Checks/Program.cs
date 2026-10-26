@@ -16,6 +16,7 @@ internal static class Program
     private static void Main()
     {
         QuestionChecks.Run();
+        LearningChecks.Models();
         var app = new App();
         app.InitializeComponent();
         app.ShutdownMode = ShutdownMode.OnExplicitShutdown;

@@ -8,7 +8,7 @@ public enum QuestionType { Single, Multiple, Judgment, Blank }
 
 public sealed class QuestionDraft : INotifyPropertyChanged
 {
-    public Guid Id { get; } = Guid.NewGuid();
+    public Guid Id { get; set; } = Guid.NewGuid();
     public QuestionType Type { get; set; }
     public string Stem { get; set; } = "";
     public List<string> Options { get; set; } = [];

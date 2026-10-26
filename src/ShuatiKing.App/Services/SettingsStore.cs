@@ -10,6 +10,8 @@ public sealed class SettingsStore
     private readonly string path;
     public SettingsStore(string? path = null) => this.path = path ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ShuatiKing", "settings.dat");
 
+    public string LearningPath => Path.ChangeExtension(path, "learning.json");
+
     public LocalSettings Load()
     {
         if (!File.Exists(path)) return new();

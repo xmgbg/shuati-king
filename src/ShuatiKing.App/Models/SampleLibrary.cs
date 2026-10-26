@@ -5,6 +5,7 @@ namespace ShuatiKing.Models;
 
 public sealed class SampleLibrary : INotifyPropertyChanged
 {
+    public Guid Id { get; private set; } = Guid.NewGuid();
     public string Name { get; private set; }
     public string Source { get; private set; }
     public string Color { get; }
@@ -41,11 +42,21 @@ public sealed class SampleLibrary : INotifyPropertyChanged
     public void NotifyChanged() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(""));
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public static SampleLibrary[] CreateExamples() =>
+    public static SampleLibrary[] CreateExamples()
+    {
+        SampleLibrary[] examples =
     [
         new("计算机网络基础", "计算机网络复习.pdf", 60, 28, 20, 20, true),
         new("大学英语词汇", "英语词汇.docx", 40, 16, 10, 20, true, "#7147EB"),
         new("教育心理学", "教育心理学.pdf", 30, 14, 10, 10, true, "#099F68"),
         new("计算机组成原理", "粘贴文字", 16, 8, 4, 4, false, "#EF970C")
     ];
+        foreach (var bank in examples)
+        {
+            bank.Id = StableId(bank.Source);
+            foreach (var question in bank.Questions) question.Id = StableId(bank.Source + "|" + question.Stem);
+        }
+        return examples;
+    }
+    private static Guid StableId(string value) => new(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(value)).AsSpan(0, 16));
 }
