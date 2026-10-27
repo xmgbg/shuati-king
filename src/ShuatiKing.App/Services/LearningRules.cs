@@ -58,19 +58,22 @@ public static class LearningRules
         return missing.Count > 0 ? string.Join("；", missing) + "。请调整题量后再开始，不会重复抽题。" : null;
     }
 
-    public static ExamSession CreateExam(SampleLibrary bank, int[] counts, decimal[] scores, int minutes)
+    public static ExamSession CreateExam(SampleLibrary bank, int[] counts, decimal[] scores, int minutes, QuestionType[]? typeOrder = null)
     {
         if (counts.Length != 4 || scores.Length != 4 || counts.Any(c => c < 0) || counts.Sum() == 0 || scores.Any(s => s <= 0) || minutes <= 0) throw new ArgumentException("组卷设置不完整。");
         if (Shortage(bank, counts) is { } missing) throw new ArgumentException(missing);
+        var order = typeOrder ?? Enum.GetValues<QuestionType>();
+        if (order.Any(t => !Enum.IsDefined(t)) || order.Distinct().Count() != order.Length || Enumerable.Range(0, 4).Any(t => counts[t] > 0 && !order.Contains((QuestionType)t)))
+            throw new ArgumentException("题型顺序须包含全部已选题型，且不能重复。");
         var items = new List<AnswerItem>();
-        for (var t = 0; t < 4; t++)
+        foreach (var type in order)
         {
+            int t = (int)type;
             var pool = bank.Questions.Where(q => q.Type == (QuestionType)t && q.IsConfirmed && q.ValidationError is null).ToArray();
             Random.Shared.Shuffle(pool);
             items.AddRange(pool.Take(counts[t]).Select(q => new AnswerItem { Question = Snapshot(q), Points = scores[t] }));
         }
-        var paper = items.ToArray(); Random.Shared.Shuffle(paper);
-        return new() { BankId = bank.Id, BankName = bank.Name, Items = [.. paper], DurationSeconds = minutes * 60.0, RemainingSeconds = minutes * 60.0 };
+        return new() { BankId = bank.Id, BankName = bank.Name, Items = items, DurationSeconds = minutes * 60.0, RemainingSeconds = minutes * 60.0 };
     }
 
     public static void FinishExam(LearningState state, ExamSession exam, bool timeout)

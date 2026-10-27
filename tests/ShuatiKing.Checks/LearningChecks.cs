@@ -36,6 +36,11 @@ internal static class LearningChecks
         Program.Check(restored.Exam.Finished && restored.Exam.Score == 0 && restored.Wrongs.Count == 4, "到时交卷未作答零分并加入错题");
         LearningRules.FinishExam(restored, restored.Exam, true);
         Program.Check(restored.Wrongs.Count == 4, "交卷幂等不重复记录");
+        var ordered = LearningRules.CreateExam(bank, [1, 0, 0, 1], [125, 1, 1, 50], 1, [QuestionType.Blank, QuestionType.Single]);
+        Program.Check(ordered.Items.Select(i => i.Question.Type).SequenceEqual(new[] { QuestionType.Blank, QuestionType.Single }), "试卷遵循指定题型顺序");
+        Program.Check(ordered.Total == 175, "满分可大于100且不做归一化");
+        var lowTotal = LearningRules.CreateExam(bank, [0, 0, 1, 0], [1, 1, 7.5m, 1], 1, [QuestionType.Judgment]);
+        Program.Check(lowTotal.Total == 7.5m && lowTotal.Items.Count == 1, "可只选一种题型并使用低于100的总分");
         var one = SampleLibrary.CreateExamples()[0]; var two = SampleLibrary.CreateExamples()[0];
         Program.Check(one.Id == two.Id && one.Questions[0].Id == two.Questions[0].Id, "示例题稳定标识支持重开后的错题关联");
     }
