@@ -12,6 +12,7 @@ namespace ShuatiKing.Views;
 public partial class ExamView
 {
     private readonly CheckBox[] typeSelections = new CheckBox[4];
+    private readonly TextBlock[] availableInputs = new TextBlock[4], subtotalLabels = new TextBlock[4];
     private readonly DispatcherTimer holdTimer = new() { Interval = TimeSpan.FromMilliseconds(350) };
     private Grid? heldRow;
     private Button? heldHandle;
@@ -47,16 +48,18 @@ public partial class ExamView
 
     private void BuildTypeRow(int type, string name)
     {
-        var row = new Grid { Tag = type, Margin = new Thickness(0, 0, 0, 8), Background = Brushes.Transparent };
-        row.ColumnDefinitions.Add(new());
-        row.ColumnDefinitions.Add(new() { Width = new GridLength(96) }); row.ColumnDefinitions.Add(new() { Width = new GridLength(112) });
+        var row = new Grid { Tag = type, Height = 64, Background = Brushes.Transparent };
+        row.ColumnDefinitions.Add(new() { Width = new GridLength(1.5, GridUnitType.Star), MinWidth = 152 });
+        row.ColumnDefinitions.Add(new() { MinWidth = 80 });
+        row.ColumnDefinitions.Add(new() { MinWidth = 100 }); row.ColumnDefinitions.Add(new() { MinWidth = 100 });
+        row.ColumnDefinitions.Add(new() { Width = new GridLength(0.75, GridUnitType.Star), MinWidth = 70 });
         var label = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
         var circle = new CheckBox { IsChecked = true, Style = (Style)FindResource("TypeCircle") };
         System.Windows.Automation.AutomationProperties.SetName(circle, "启用" + name);
         typeSelections[type] = circle;
-        var title = new TextBlock { Text = name, FontSize = 14, Margin = new Thickness(8, 0, 0, 0), Cursor = Cursors.Hand };
+        var title = new TextBlock { Text = name, FontSize = 16, Margin = new Thickness(8, 0, 0, 0), Cursor = Cursors.Hand };
         title.MouseLeftButtonDown += (_, _) => circle.IsChecked = circle.IsChecked != true;
-        var drag = new Button { Style = (Style)FindResource("TypeDragHandle"), Margin = new Thickness(0, 0, 12, 0), ToolTip = "调整顺序" };
+        var drag = new Button { Style = (Style)FindResource("TypeDragHandle"), Margin = new Thickness(0, 0, 8, 0), ToolTip = "调整顺序" };
         System.Windows.Automation.AutomationProperties.SetName(drag, "长按拖动" + name);
         drag.PreviewMouseLeftButtonDown += (_, e) => { CancelHold(); heldRow = row; heldHandle = drag; holdOrigin = e.GetPosition(drag); drag.CaptureMouse(); holdTimer.Start(); e.Handled = true; };
         drag.PreviewMouseMove += (_, e) =>
@@ -76,15 +79,23 @@ public partial class ExamView
             MoveTypeRow(type, TypeRows.Children.IndexOf(row) + (key == Key.Up ? -1 : 1)); e.Handled = true;
         };
         row.Children.Add(label);
-        var count = new TextBox { Text = type == 0 ? "10" : "5", MaxLength = 4, Width = 80, Height = 36, MinHeight = 36, Padding = new Thickness(10, 6, 10, 6), FontSize = 14, HorizontalAlignment = HorizontalAlignment.Left };
-        var score = new TextBox { Text = type < 2 ? "2" : "1", MaxLength = 8, Width = 112, Height = 36, MinHeight = 36, Padding = new Thickness(10, 6, 10, 6), FontSize = 14 };
+        var count = new TextBox { Text = type == 0 ? "10" : "5", MaxLength = 4, Width = 80, Height = 38, MinHeight = 38, Padding = new Thickness(10, 6, 10, 6), FontSize = 16, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
+        var score = new TextBox { Text = type < 2 ? "2" : "1", MaxLength = 8, Width = 80, Height = 38, MinHeight = 38, Padding = new Thickness(10, 6, 10, 6), FontSize = 16, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
         System.Windows.Automation.AutomationProperties.SetName(count, name + "考试题量");
         System.Windows.Automation.AutomationProperties.SetName(score, name + "每题分值");
         countInputs[type] = count; scoreInputs[type] = score;
         count.TextChanged += SettingsChanged; score.TextChanged += SettingsChanged;
         circle.Checked += (_, e) => { count.IsEnabled = score.IsEnabled = true; title.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush"); SettingsChanged(circle, e); };
         circle.Unchecked += (_, e) => { count.IsEnabled = score.IsEnabled = false; title.SetResourceReference(TextBlock.ForegroundProperty, "MutedBrush"); SettingsChanged(circle, e); };
-        Grid.SetColumn(count, 1); Grid.SetColumn(score, 2); row.Children.Add(count); row.Children.Add(score);
+        var available = new TextBlock { FontSize = 16, HorizontalAlignment = HorizontalAlignment.Center };
+        var subtotal = new TextBlock { FontSize = 16, HorizontalAlignment = HorizontalAlignment.Center };
+        System.Windows.Automation.AutomationProperties.SetName(available, name + "可用题量");
+        System.Windows.Automation.AutomationProperties.SetName(subtotal, name + "分值小计");
+        availableInputs[type] = available; subtotalLabels[type] = subtotal;
+        Grid.SetColumn(available, 1); Grid.SetColumn(count, 2); Grid.SetColumn(score, 3); Grid.SetColumn(subtotal, 4);
+        row.Children.Add(available); row.Children.Add(count); row.Children.Add(score); row.Children.Add(subtotal);
+        var divider = new Border { Height = 1, VerticalAlignment = VerticalAlignment.Bottom, IsHitTestVisible = false };
+        divider.SetResourceReference(Border.BackgroundProperty, "LineBrush"); Grid.SetColumnSpan(divider, 5); row.Children.Add(divider);
         TypeRows.Children.Add(row);
     }
 

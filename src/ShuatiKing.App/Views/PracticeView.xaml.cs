@@ -12,23 +12,69 @@ public partial class PracticeView : UserControl
     private readonly Action save;
     private readonly Action openWrongs;
     private readonly Func<int> fontSize;
+    private bool initializing = true;
     public PracticeView(LearningState state, IReadOnlyList<SampleLibrary> banks, Action save, Action openWrongs, Func<int> fontSize)
     {
         this.state = state; this.banks = banks; this.save = save; this.openWrongs = openWrongs; this.fontSize = fontSize;
-        InitializeComponent(); ShowSetup();
+        InitializeComponent(); initializing = false;
+        SizeChanged += (_, _) => ApplySetupDensity(); Unloaded += (_, _) => RulesPopup.IsOpen = false;
+        ShowSetup();
     }
     public void ShowSetup(SampleLibrary? bank = null)
     {
         Setup.Visibility = Visibility.Visible; SessionPanel.Visibility = CompletionPanel.Visibility = Visibility.Collapsed;
         BankPicker.ItemsSource = banks; BankPicker.SelectedItem = bank ?? banks.FirstOrDefault();
         ResumeCard.Visibility = state.Practice is null ? Visibility.Collapsed : Visibility.Visible;
-        if (state.Practice is { } p) ResumeText.Text = $"{p.BankName} · {p.Items.Count(i => i.Submitted)} / {p.Items.Count} 题";
-        Feedback.Text = "";
+        if (state.Practice is { } p)
+        {
+            ResumeText.Text = $"{p.BankName} · {p.Items.Count(i => i.Submitted)} / {p.Items.Count} 题";
+            ResumeButton.Content = p.Complete ? "查看结果 ›" : "继续练习 ›";
+        }
+        Feedback.Text = ""; UpdateSetup(); ApplySetupDensity();
+    }
+    private string SelectedMode => WrongMode.IsChecked == true ? "错题重练" : RandomMode.IsChecked == true ? "随机练习" : "顺序练习";
+    private void SetupChanged(object sender, RoutedEventArgs e)
+    {
+        if (initializing) return;
+        Feedback.Text = ""; UpdateSetup();
+    }
+    private void UpdateSetup()
+    {
+        var bank = BankPicker.SelectedItem as SampleLibrary;
+        var questions = bank?.Questions.Where(q => q.IsConfirmed && q.ValidationError is null).ToArray() ?? [];
+        var wrongs = bank is null ? [] : state.Wrongs.Where(w => w.BankId == bank.Id).Select(w => w.Question).ToArray();
+        BankSource.Text = bank is null ? "" : $"{bank.Source} · {questions.Length} 题";
+        SequentialCount.Text = RandomCount.Text = $"{questions.Length} 题"; WrongCount.Text = $"{wrongs.Length} 题";
+        var round = WrongMode.IsChecked == true ? wrongs : questions;
+        ModeName.Text = SelectedMode; RoundCount.Text = round.Length.ToString();
+        var labels = new[] { SingleCount, MultipleCount, JudgmentCount, BlankCount };
+        for (var i = 0; i < labels.Length; i++) labels[i].Text = round.Count(q => (int)q.Type == i).ToString();
+    }
+    private void ApplySetupDensity()
+    {
+        if (Setup.Visibility != Visibility.Visible) return;
+        bool compact = ActualHeight < 660 || ActualWidth < 1200;
+        PageLayout.Margin = compact ? new Thickness(24, 16, 24, 16) : new Thickness(30, 24, 30, 20);
+        PageHeading.FontSize = compact ? 28 : 32;
+        BankToolbar.Margin = compact ? new Thickness(20, 16, 20, 16) : new Thickness(28, 24, 28, 24);
+        BankPicker.Width = compact ? 300 : 380;
+        ModesSection.Padding = new Thickness(compact ? 16 : 24);
+        RoundSummarySection.Padding = new Thickness(compact ? 16 : 24);
+        ModesHeading.Margin = new Thickness(0, 0, 0, compact ? 14 : 22);
+        ModeChoices.RowDefinitions[1].Height = ModeChoices.RowDefinitions[3].Height = new GridLength(compact ? 12 : 16);
+        RoundHeading.Margin = new Thickness(0, 0, 0, compact ? 10 : 20);
+        RoundCount.FontSize = compact ? 32 : 44;
+        ModeName.FontSize = compact ? 16 : 18;
+        SummaryDivider.Margin = new Thickness(0, compact ? 12 : 20, 0, compact ? 12 : 20);
+        TypeDistribution.Height = compact ? 88 : 112;
+        SummaryActions.Margin = new Thickness(0, compact ? 12 : 24, 0, 0);
+        StartButton.Height = compact ? 44 : 52;
+        RulesButton.Margin = new Thickness(0, compact ? 6 : 14, 0, 0);
     }
     private void Start(object sender, RoutedEventArgs e)
     {
         if (BankPicker.SelectedItem is not SampleLibrary bank) { Feedback.Text = "请先选择题库。"; return; }
-        var mode = WrongMode.IsChecked == true ? "错题重练" : RandomMode.IsChecked == true ? "随机练习" : "顺序练习";
+        var mode = SelectedMode;
         var session = LearningRules.StartPractice(bank, mode, state);
         if (session.Items.Count == 0) { Feedback.Text = mode == "错题重练" ? "这个题库暂时没有错题，可选择顺序或随机练习。" : "没有可练习题目，请先完成题目审核。"; return; }
         if (state.Practice is { Complete: false } && MessageBox.Show("新一轮将替换当前练习进度，已记录错题会保留。是否继续？", "开始新一轮", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
@@ -45,7 +91,8 @@ public partial class PracticeView : UserControl
     public void ContinuePractice()
     {
         if (state.Practice is not { } p) { ShowSetup(); return; }
-        Setup.Visibility = Visibility.Collapsed; Feedback.Text = "";
+        Setup.Visibility = Visibility.Collapsed; RulesPopup.IsOpen = false; Feedback.Text = "";
+        PageLayout.Margin = new Thickness(30, 24, 30, 20); PageHeading.FontSize = 32;
         if (p.Complete)
         {
             SessionPanel.Visibility = Visibility.Collapsed; CompletionPanel.Visibility = Visibility.Visible;

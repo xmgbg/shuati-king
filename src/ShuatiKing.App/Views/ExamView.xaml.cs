@@ -27,7 +27,9 @@ public partial class ExamView : UserControl
         var names = new[] { "单选题", "多选题", "判断题", "填空题" };
         InitializeTypeSettings();
         for (var i = 0; i < 4; i++) BuildTypeRow(i, names[i]);
-        timer.Tick += (_, _) => Pulse(); initializing = false; ShowSetup();
+        timer.Tick += (_, _) => Pulse();
+        SizeChanged += (_, _) => ApplySetupDensity(); Unloaded += (_, _) => RulesPopup.IsOpen = false;
+        initializing = false; ShowSetup();
     }
     public void ShowSetup(SampleLibrary? bank = null)
     {
@@ -35,16 +37,54 @@ public partial class ExamView : UserControl
         Setup.Visibility = Visibility.Visible; ExamPanel.Visibility = ResultPanel.Visibility = Visibility.Collapsed;
         BankPicker.ItemsSource = banks; BankPicker.SelectedItem = bank ?? BankPicker.SelectedItem ?? banks.FirstOrDefault();
         ResumeCard.Visibility = state.Exam is null ? Visibility.Collapsed : Visibility.Visible;
-        if (state.Exam is { } exam) ResumeText.Text = exam.BankName + (exam.Finished ? " · 已交卷" : " · 已暂停 · 剩余 " + FormatTime(exam.RemainingSeconds));
-        Feedback.Text = ""; UpdateSettings();
+        if (state.Exam is { } exam)
+        {
+            var remaining = FormatTime(exam.RemainingSeconds);
+            ResumeText.Text = exam.BankName + (exam.Finished ? " · 已交卷" : " · 已暂停 " + (remaining.StartsWith("00:") ? remaining[3..] : remaining));
+            ResumeExamButton.Content = exam.Finished ? "查看结果 ›" : "继续考试 ›";
+        }
+        Feedback.Text = ""; UpdateSettings(); ApplySetupDensity();
     }
     private void SettingsChanged(object sender, RoutedEventArgs e) { if (!initializing) { Feedback.Text = ""; UpdateSettings(); } }
     private void UpdateSettings()
     {
-        if (BankPicker.SelectedItem is SampleLibrary bank)
-            AvailableCounts.Text = string.Join("\n", Enum.GetValues<QuestionType>().Select(t => $"{new[] { "单选题", "多选题", "判断题", "填空题" }[(int)t]}   {bank.Questions.Count(q => q.Type == t && q.IsConfirmed && q.ValidationError is null)} 道"));
-        if (TrySettings(out var counts, out var scores)) PaperTotal.Text = $"共 {counts.Sum()} 题 · 满分 {counts.Select((c, i) => c * scores[i]).Sum():0.##} 分";
-        else PaperTotal.Text = "请填写有效题量和分值";
+        var bank = BankPicker.SelectedItem as SampleLibrary;
+        BankSource.Text = bank is null ? "" : $"{bank.Source} · {bank.ConfirmedCount} 题";
+        for (var i = 0; i < 4; i++)
+        {
+            availableInputs[i].Text = (bank?.Questions.Count(q => (int)q.Type == i && q.IsConfirmed && q.ValidationError is null) ?? 0).ToString();
+            subtotalLabels[i].Text = typeSelections[i].IsChecked == true && int.TryParse(countInputs[i].Text, out var count) && count >= 0 && decimal.TryParse(scoreInputs[i].Text, out var score) && score > 0
+                ? $"{count * score:0.##} 分" : "—";
+            subtotalLabels[i].SetResourceReference(TextBlock.ForegroundProperty, typeSelections[i].IsChecked == true ? "TextBrush" : "MutedBrush");
+        }
+        SelectionSummary.Text = $"已选 {typeSelections.Count(s => s.IsChecked == true)} 种题型";
+        if (TrySettings(out var counts, out var scores))
+        {
+            QuestionTotal.Text = counts.Sum().ToString();
+            PaperTotal.Text = $"{counts.Select((c, i) => c * scores[i]).Sum():0.##}";
+        }
+        else QuestionTotal.Text = PaperTotal.Text = "—";
+    }
+    private void ApplySetupDensity()
+    {
+        if (Setup.Visibility != Visibility.Visible) return;
+        bool compact = ActualHeight < 660 || ActualWidth < 1200;
+        PageLayout.Margin = compact ? new Thickness(24, 16, 24, 16) : new Thickness(30, 24, 30, 20);
+        PageHeading.FontSize = compact ? 28 : 32;
+        BankToolbar.Margin = compact ? new Thickness(20, 16, 20, 16) : new Thickness(28, 24, 28, 24);
+        BankPicker.Width = compact ? 300 : 380;
+        TypeTableSection.Padding = new Thickness(compact ? 16 : 24);
+        ExamSummarySection.Padding = new Thickness(compact ? 20 : 32);
+        TypeHeading.Margin = new Thickness(0, 0, 0, compact ? 10 : 18);
+        TableHeader.Height = compact ? 34 : 48;
+        foreach (Grid row in TypeRows.Children) row.Height = compact ? 48 : 64;
+        SelectionSummary.Margin = new Thickness(4, compact ? 12 : 20, 0, 0);
+        ExamSettingsHeading.Margin = new Thickness(0, 0, 0, compact ? 20 : 30);
+        SummaryDivider.Margin = new Thickness(0, compact ? 16 : 28, 0, compact ? 16 : 28);
+        SummaryActions.Margin = new Thickness(0, compact ? 16 : 24, 0, 0);
+        RulesButton.Margin = new Thickness(0, compact ? 8 : 14, 0, 0);
+        QuestionTotal.FontSize = PaperTotal.FontSize = compact ? 32 : 44;
+        StartExamButton.Height = compact ? 44 : 52;
     }
     private bool TrySettings(out int[] counts, out decimal[] scores)
     {
@@ -69,7 +109,8 @@ public partial class ExamView : UserControl
     public void OpenPaper()
     {
         if (state.Exam is not { } exam) return;
-        Setup.Visibility = Visibility.Collapsed; Feedback.Text = ""; SubmitConfirmation.Visibility = Visibility.Collapsed;
+        Setup.Visibility = Visibility.Collapsed; RulesPopup.IsOpen = false; Feedback.Text = ""; SubmitConfirmation.Visibility = Visibility.Collapsed;
+        PageLayout.Margin = new Thickness(30, 24, 30, 20); PageHeading.FontSize = 32;
         if (exam.Finished) { ShowResult(); return; }
         ResultPanel.Visibility = Visibility.Collapsed; ExamPanel.Visibility = Visibility.Visible; RenderQuestion(); PaintClock();
     }

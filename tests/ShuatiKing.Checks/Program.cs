@@ -112,8 +112,10 @@ internal static class Program
         ReviewChecks.Run(window);
         WorkflowChecks.Run(window);
         PracticeChecks.Run(window);
+        PracticeLayoutChecks.Run(window);
         ExamChecks.Run(window);
         ExamTypeChecks.Run(window);
+        ExamLayoutChecks.Run(window);
         window.Close();
         var withAvatar = store.Load();
         withAvatar.Avatar = Convert.ToBase64String(File.ReadAllBytes("assets/logo.png"));

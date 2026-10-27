@@ -23,20 +23,66 @@
    </ControlTemplate></Setter.Value></Setter>
   </Style>
  </UserControl.Resources>
- <Grid Margin="30,24,30,20"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="20"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-  <TextBlock Text="模拟考试" Style="{StaticResource PageTitle}"/>
-  <ScrollViewer Grid.Row="2" x:Name="Setup" VerticalScrollBarVisibility="Auto"><StackPanel>
-   <Border x:Name="ResumeCard" Background="{DynamicResource TintBrush}" Padding="20" CornerRadius="8" Margin="0,0,0,20" Visibility="Collapsed"><DockPanel><Button x:Name="ResumeExamButton" Content="打开上次考试" DockPanel.Dock="Right" Click="OpenPrevious"/><TextBlock x:Name="ResumeText" FontSize="18" TextWrapping="Wrap" Margin="0,0,18,0"/></DockPanel></Border>
-   <Grid MaxWidth="850" HorizontalAlignment="Left" Width="{Binding ElementName=Setup, Path=ActualWidth}"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="24"/><ColumnDefinition Width="260"/></Grid.ColumnDefinitions>
-    <Border Style="{StaticResource Panel}"><StackPanel Width="480" HorizontalAlignment="Left"><TextBlock Text="组卷设置" FontSize="21" FontWeight="SemiBold" Margin="0,0,0,20"/><Label Content="题库" Target="{Binding ElementName=BankPicker}" Foreground="{DynamicResource TextBrush}" Padding="0,0,0,8"/><ComboBox x:Name="BankPicker" ItemTemplate="{StaticResource BankPickerTemplate}" SelectionChanged="SettingsChanged" AutomationProperties.Name="考试题库"/>
-     <Grid Width="430" HorizontalAlignment="Left" Margin="0,24,0,10"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="96"/><ColumnDefinition Width="112"/></Grid.ColumnDefinitions><TextBlock Text="题型" Style="{StaticResource MutedText}" FontSize="13" Margin="44,0,0,0"/><TextBlock Grid.Column="1" Text="题量" Style="{StaticResource MutedText}" FontSize="13"/><TextBlock Grid.Column="2" Text="每题分值" Style="{StaticResource MutedText}" FontSize="13"/></Grid>
-     <StackPanel x:Name="TypeRows" Width="430" HorizontalAlignment="Left"/>
-     <Label Content="考试时长（分钟）" Target="{Binding ElementName=MinutesInput}" Foreground="{DynamicResource TextBrush}" Padding="0,0,0,8" Margin="0,18,0,0"/><TextBox x:Name="MinutesInput" Text="30" Width="112" HorizontalAlignment="Left" MaxLength="4" AutomationProperties.Name="考试时长分钟"/>
-
-    </StackPanel></Border>
-    <Border Grid.Column="2" Style="{StaticResource Panel}" VerticalAlignment="Top"><StackPanel><TextBlock Text="可用题量" FontSize="20" FontWeight="SemiBold"/><TextBlock x:Name="AvailableCounts" TextWrapping="Wrap" LineHeight="30" Margin="0,18,0,20"/><TextBlock Text="多选题须全部选对，少选或错选不得分。填空题须所有空匹配才得分。" Style="{StaticResource MutedText}" TextWrapping="Wrap" LineHeight="26" FontSize="14"/><TextBlock Text="暂停或关闭软件会保存作答与剩余时间；重新打开后需手动继续。计时归零时自动交卷，未作答计零分。" Style="{StaticResource MutedText}" TextWrapping="Wrap" LineHeight="26" FontSize="14" Margin="0,18,0,0"/></StackPanel></Border>
+ <Grid x:Name="PageLayout" Margin="30,24,30,20"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="20"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+  <Grid x:Name="PageHeader"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="24"/><ColumnDefinition/></Grid.ColumnDefinitions>
+   <TextBlock x:Name="PageHeading" Text="模拟考试" Style="{StaticResource PageTitle}"/>
+   <Grid Grid.Column="2" Visibility="{Binding ElementName=Setup, Path=Visibility}">
+    <Border x:Name="ResumeCard" Background="{DynamicResource TintBrush}" Padding="16,8" CornerRadius="7" HorizontalAlignment="Right" MaxWidth="620" Visibility="Collapsed">
+     <DockPanel><Button x:Name="ResumeExamButton" Content="继续考试 ›" DockPanel.Dock="Right" Click="OpenPrevious" BorderThickness="0" Background="Transparent" Padding="12,6" MinHeight="32" Margin="12,0,0,0"/><TextBlock x:Name="ResumeText" FontSize="14" TextTrimming="CharacterEllipsis" ToolTip="{Binding RelativeSource={RelativeSource Self}, Path=Text}"/></DockPanel>
+    </Border>
    </Grid>
-  </StackPanel></ScrollViewer>
+  </Grid>
+  <ScrollViewer Grid.Row="2" x:Name="Setup" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+   <Border x:Name="SetupCard" Style="{StaticResource Panel}" Padding="0" VerticalAlignment="Top">
+    <StackPanel>
+     <Grid x:Name="BankToolbar" Margin="28,24"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="20"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="20"/><ColumnDefinition/></Grid.ColumnDefinitions>
+      <Label Content="考试题库" Target="{Binding ElementName=BankPicker}" Foreground="{DynamicResource TextBrush}" FontSize="18" FontWeight="SemiBold" Padding="0" VerticalAlignment="Center"/>
+      <ComboBox Grid.Column="2" x:Name="BankPicker" Width="380" ItemTemplate="{StaticResource BankPickerTemplate}" SelectionChanged="SettingsChanged" AutomationProperties.Name="考试题库"/>
+      <TextBlock Grid.Column="4" x:Name="BankSource" VerticalAlignment="Center" Style="{StaticResource MutedText}" FontSize="14" TextTrimming="CharacterEllipsis" ToolTip="{Binding RelativeSource={RelativeSource Self}, Path=Text}"/>
+     </Grid>
+     <Border BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="6" Margin="12,0,12,12">
+      <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition MinWidth="280" MaxWidth="440"/></Grid.ColumnDefinitions>
+       <Border x:Name="TypeTableSection" Padding="24">
+        <StackPanel>
+         <TextBlock x:Name="TypeHeading" Text="题型设置" FontSize="21" FontWeight="SemiBold" Margin="0,0,0,18"/>
+         <Grid x:Name="TableHeader" Height="48" Background="{DynamicResource CanvasBrush}"><Grid.ColumnDefinitions><ColumnDefinition Width="1.5*" MinWidth="152"/><ColumnDefinition MinWidth="80"/><ColumnDefinition MinWidth="100"/><ColumnDefinition MinWidth="100"/><ColumnDefinition Width="0.75*" MinWidth="70"/></Grid.ColumnDefinitions>
+          <TextBlock VerticalAlignment="Center" Text="题型" Style="{StaticResource MutedText}" FontSize="14" Margin="76,0,0,0"/>
+          <TextBlock VerticalAlignment="Center" Grid.Column="1" Text="可用题量" Style="{StaticResource MutedText}" FontSize="14" HorizontalAlignment="Center"/>
+          <TextBlock VerticalAlignment="Center" Grid.Column="2" Text="抽取题量" Style="{StaticResource MutedText}" FontSize="14" HorizontalAlignment="Center"/>
+          <TextBlock VerticalAlignment="Center" Grid.Column="3" Text="每题分值" Style="{StaticResource MutedText}" FontSize="14" HorizontalAlignment="Center"/>
+          <TextBlock VerticalAlignment="Center" Grid.Column="4" Text="小计" Style="{StaticResource MutedText}" FontSize="14" HorizontalAlignment="Center"/>
+         </Grid>
+         <StackPanel x:Name="TypeRows"/>
+         <TextBlock x:Name="SelectionSummary" FontSize="14" Margin="4,20,0,0"/>
+        </StackPanel>
+       </Border>
+       <Border Grid.Column="1" Background="{DynamicResource TintBrush}" Opacity="0.35" CornerRadius="0,5,5,0"/>
+       <Border Grid.Column="1" x:Name="ExamSummarySection" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1,0,0,0" Padding="32">
+        <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+         <TextBlock x:Name="ExamSettingsHeading" Text="考试设置" FontSize="21" FontWeight="SemiBold" Margin="0,0,0,30"/>
+         <StackPanel Grid.Row="1"><Label Content="考试时长" Target="{Binding ElementName=MinutesInput}" Foreground="{DynamicResource TextBrush}" Padding="0" Margin="0,0,0,12"/><StackPanel Orientation="Horizontal"><TextBox x:Name="MinutesInput" Text="30" Width="112" Height="42" MaxLength="4" AutomationProperties.Name="考试时长分钟"/><TextBlock Text="分钟" Margin="14,0,0,0"/></StackPanel></StackPanel>
+         <Border Grid.Row="2" x:Name="SummaryDivider" Height="1" Background="{DynamicResource LineBrush}" Margin="0,28"/>
+         <Grid Grid.Row="3"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="1"/><ColumnDefinition/></Grid.ColumnDefinitions>
+          <StackPanel><TextBlock Text="题目总数" FontSize="14"/><StackPanel Orientation="Horizontal" Margin="0,12,0,0"><TextBlock x:Name="QuestionTotal" Text="25" Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold" FontSize="44"/><TextBlock Text="题" Margin="8,0,0,0" VerticalAlignment="Bottom" Padding="0,0,0,7"/></StackPanel></StackPanel>
+          <Border Grid.Column="1" Background="{DynamicResource LineBrush}" Margin="0,0,0,6"/>
+          <StackPanel Grid.Column="2" HorizontalAlignment="Right"><TextBlock Text="试卷满分" FontSize="14"/><StackPanel Orientation="Horizontal" Margin="0,12,0,0"><TextBlock x:Name="PaperTotal" Text="40" Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold" FontSize="44"/><TextBlock Text="分" Margin="8,0,0,0" VerticalAlignment="Bottom" Padding="0,0,0,7"/></StackPanel></StackPanel>
+         </Grid>
+         <StackPanel Grid.Row="5" x:Name="SummaryActions" Margin="0,24,0,0">
+          <Button x:Name="StartExamButton" Content="开始考试" Height="52" Style="{StaticResource PrimaryButton}" Click="StartExam"/>
+          <ToggleButton x:Name="RulesButton" Content="ⓘ 评分规则" Margin="0,14,0,0" Foreground="{DynamicResource MutedBrush}" Cursor="Hand" Height="28" AutomationProperties.Name="查看评分规则">
+           <ToggleButton.Template><ControlTemplate TargetType="ToggleButton"><Border x:Name="RuleLink" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" CornerRadius="4"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/></Trigger><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="RuleLink" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/></Trigger></ControlTemplate.Triggers></ControlTemplate></ToggleButton.Template>
+          </ToggleButton>
+          <Popup x:Name="RulesPopup" PlacementTarget="{Binding ElementName=RulesButton}" Placement="Top" StaysOpen="False" AllowsTransparency="True" IsOpen="{Binding ElementName=RulesButton, Path=IsChecked, Mode=TwoWay}">
+           <Border Style="{StaticResource Panel}" Padding="20" Width="310" Margin="8"><StackPanel><TextBlock Text="评分规则" Foreground="{DynamicResource TextBrush}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,12"/><TextBlock Text="多选题须全部选对，少选或错选不得分。&#x0a;填空题须所有空匹配才得分。&#x0a;未作答题目计零分。" Style="{StaticResource MutedText}" FontSize="14" TextWrapping="Wrap" LineHeight="25"/><TextBlock Text="暂停或关闭软件后保留作答与剩余时间；继续后恢复计时，时间归零自动交卷。" Style="{StaticResource MutedText}" FontSize="14" TextWrapping="Wrap" LineHeight="25" Margin="0,12,0,0"/></StackPanel></Border>
+          </Popup>
+         </StackPanel>
+        </Grid>
+       </Border>
+      </Grid>
+     </Border>
+    </StackPanel>
+   </Border>
+  </ScrollViewer>
   <Grid Grid.Row="2" x:Name="ExamPanel" Visibility="Collapsed"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="20"/><RowDefinition/></Grid.RowDefinitions>
    <DockPanel><StackPanel DockPanel.Dock="Right" Orientation="Horizontal"><TextBlock x:Name="ClockText" Foreground="{DynamicResource AccentBrush}" FontSize="28" FontWeight="SemiBold" Margin="0,0,24,0"/><Button x:Name="PauseButton" Content="暂停考试" Click="PauseClick" Margin="0,0,12,0"/><Button x:Name="SubmitPaperButton" Content="交卷" Style="{StaticResource PrimaryButton}" Click="AskSubmit"/></StackPanel><StackPanel><TextBlock x:Name="PaperName" FontSize="20" FontWeight="SemiBold"/><TextBlock x:Name="AnsweredCount" Style="{StaticResource MutedText}" FontSize="14" Margin="0,8,0,0"/></StackPanel></DockPanel>
    <Grid Grid.Row="2" x:Name="QuizGrid"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="22"/><ColumnDefinition Width="280"/></Grid.ColumnDefinitions>
@@ -47,6 +93,6 @@
    <Border x:Name="SubmitConfirmation" Grid.RowSpan="3" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" Padding="40" CornerRadius="8" Visibility="Collapsed"><StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"><TextBlock Text="确认交卷？" FontSize="30" FontWeight="SemiBold"/><TextBlock x:Name="ConfirmText" TextWrapping="Wrap" LineHeight="28" Margin="0,20,0,24"/><TextBlock Text="确认期间倒计时继续；到时会自动交卷。" Style="{StaticResource MutedText}" FontSize="14" Margin="0,0,0,24"/><WrapPanel><Button x:Name="CancelSubmitButton" Content="继续作答" Click="CancelSubmit" Margin="0,0,12,0"/><Button x:Name="ConfirmSubmitButton" Content="确认交卷" Style="{StaticResource PrimaryButton}" Click="ConfirmSubmit"/></WrapPanel></StackPanel></Border>
   </Grid>
   <Border Grid.Row="2" x:Name="ResultPanel" Style="{StaticResource Panel}" VerticalAlignment="Top" Visibility="Collapsed"><StackPanel><TextBlock x:Name="ResultHeading" Text="已交卷" FontSize="28" FontWeight="SemiBold"/><TextBlock x:Name="ResultScore" Foreground="{DynamicResource AccentBrush}" FontSize="40" FontWeight="SemiBold" Margin="0,22,0,18"/><TextBlock x:Name="ResultSummary" TextWrapping="Wrap" LineHeight="30"/><TextBlock Text="已保存本次作答与评分；错题已加入错题本，之后答对一次会自动移出。" Style="{StaticResource MutedText}" TextWrapping="Wrap" FontSize="14" Margin="0,20,0,24"/><WrapPanel><Button Content="返回组卷设置" Click="BackToSetup" Margin="0,0,12,0"/><Button Content="打开错题本" Click="OpenWrongs" Style="{StaticResource PrimaryButton}"/></WrapPanel></StackPanel></Border>
-  <DockPanel Grid.Row="3" Margin="0,16,0,0"><Button x:Name="StartExamButton" Content="开始考试" DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Click="StartExam" Visibility="{Binding ElementName=Setup, Path=Visibility}" Margin="20,0,0,0"/><TextBlock x:Name="PaperTotal" DockPanel.Dock="Right" FontSize="18" FontWeight="SemiBold" Margin="24,0,0,0" Visibility="{Binding ElementName=Setup, Path=Visibility}"/><TextBlock x:Name="Feedback" Foreground="{DynamicResource WarningBrush}" TextWrapping="Wrap" FontSize="14" AutomationProperties.LiveSetting="Polite"/></DockPanel>
+  <TextBlock Grid.Row="3" x:Name="Feedback" Foreground="{DynamicResource WarningBrush}" TextWrapping="Wrap" FontSize="14" AutomationProperties.LiveSetting="Polite"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Margin" Value="0,12,0,0"/><Style.Triggers><Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed"/></Trigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
  </Grid>
 </UserControl>
