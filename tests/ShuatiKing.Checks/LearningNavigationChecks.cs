@@ -9,7 +9,7 @@ internal static class LearningNavigationChecks
 {
     internal static void Run()
     {
-        var settingsPath = Path.GetFullPath($".artifacts/navigation-{Guid.NewGuid()}.dat");
+        var settingsPath = Program.TestPath("navigation.dat");
         var settings = new SettingsStore(settingsPath);
         var learningStore = new LearningStore(settings.LearningPath);
         var first = new MainWindow(settings); first.Show(); first.UpdateLayout();

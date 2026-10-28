@@ -32,7 +32,7 @@ internal static class ExamHistoryChecks
         var pending = LearningRules.CreateExam(other, [1, 0, 0, 0], [1, 1, 1, 1], 1);
         LearningRules.ArchiveExam(state, pending);
         Program.Check(state.ExamHistory.Count == 2, "未交卷试卷不进入历史记录");
-        var path = Path.GetFullPath($".artifacts/history-model-{Guid.NewGuid()}.json");
+        var path = Program.TestPath("history-model.json");
         var store = new LearningStore(path); store.Save(state);
         var restored = store.Load();
         Program.Check(restored.ExamHistory.Count == 2 && restored.ExamHistory[0].Id == first.Id && restored.ExamHistory[0].Score == 6 && restored.ExamHistory[1].Total == 175, "重开后恢复全部历史及原评分");

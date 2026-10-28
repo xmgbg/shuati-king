@@ -13,7 +13,7 @@ internal static class ExamChecks
         var host = (ContentControl)window.FindName("PageHost");
         var bank = new SampleLibrary("考试验收题库", "text", 1, 1, 1, 1, true);
         var state = new LearningState();
-        var path = Path.GetFullPath($".artifacts/exam-ui-{Guid.NewGuid()}.json");
+        var path = Program.TestPath("exam-ui.json");
         var store = new LearningStore(path);
         var view = new ExamView(state, new[] { bank }, () => store.Save(state), () => { }, () => 20);
         host.Content = view; window.UpdateLayout();

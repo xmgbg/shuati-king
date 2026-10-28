@@ -28,7 +28,7 @@ internal static class LearningChecks
         exam.Advance(5); exam.Paused = true; exam.Advance(20);
         Program.Check(exam.RemainingSeconds == 55, "暂停期间不扣时");
         state.Exam = exam;
-        var path = Path.GetFullPath($".artifacts/learning-check-{Guid.NewGuid()}.json");
+        var path = Program.TestPath("learning-check.json");
         var store = new LearningStore(path); store.Save(state);
         var restored = store.Load(); File.Delete(path);
         Program.Check(restored.Exam!.Paused && restored.Exam.RemainingSeconds == 55 && restored.Exam.Items[0].Question.Id == exam.Items[0].Question.Id, "恢复作答快照与剩余时间并保持暂停");

@@ -12,8 +12,36 @@ using ShuatiKing.Models;
 internal static class Program
 {
     private static int assertions;
+    private static bool screenshots;
+    private static readonly string checksDirectory = Path.GetFullPath(".artifacts/checks");
+    private static readonly string runDirectory = Path.Combine(checksDirectory, Guid.NewGuid().ToString("N"));
+
+    internal static string TestPath(string name)
+    {
+        Directory.CreateDirectory(runDirectory);
+        return Path.Combine(runDirectory, name);
+    }
+
+    private static string ScreenshotPath(string name)
+    {
+        var directory = Path.GetFullPath(".scratch/screenshots");
+        Directory.CreateDirectory(directory);
+        return Path.Combine(directory, name + ".png");
+    }
     [STAThread]
     private static void Main(string[] args)
+    {
+        screenshots = args.Contains("--screenshots");
+        try { Run(args); }
+        finally
+        {
+            if (Directory.Exists(runDirectory) &&
+                string.Equals(Path.GetDirectoryName(runDirectory), checksDirectory, StringComparison.OrdinalIgnoreCase))
+                Directory.Delete(runDirectory, recursive: true);
+        }
+    }
+
+    private static void Run(string[] args)
     {
         if (args.Contains("--preview-history")) { InteractivePreview.Run(); return; }
         QuestionChecks.Run();
@@ -23,7 +51,7 @@ internal static class Program
         app.InitializeComponent();
         app.ShutdownMode = ShutdownMode.OnExplicitShutdown;
         SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
-        var settingsPath = Path.GetFullPath($".artifacts/check-settings-{Guid.NewGuid()}.dat");
+        var settingsPath = Program.TestPath("check-settings.dat");
         var store = new SettingsStore(settingsPath);
         var window = new MainWindow(store);
         window.Show();
@@ -145,6 +173,7 @@ internal static class Program
 
     private static void CaptureFullProfile(FrameworkElement content, string name)
     {
+        if (!screenshots) return;
         var width = (int)Math.Ceiling(content.ActualWidth);
         var height = (int)Math.Ceiling(content.ActualHeight);
         var visual = new DrawingVisual();
@@ -155,7 +184,7 @@ internal static class Program
         }
         var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
         bitmap.Render(visual);
-        using var file = File.Create($".artifacts/{name}.png");
+        using var file = File.Create(ScreenshotPath(name));
         var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap)); encoder.Save(file);
     }
 
@@ -197,11 +226,11 @@ internal static class Program
     {
         window.UpdateLayout();
         window.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+        if (!screenshots) return;
         var surface = (FrameworkElement)window.Content;
         var bitmap = new RenderTargetBitmap((int)surface.ActualWidth, (int)surface.ActualHeight, 96, 96, PixelFormats.Pbgra32);
         bitmap.Render(surface);
-        Directory.CreateDirectory(".artifacts");
-        using var file = File.Create($".artifacts/{name}.png");
+        using var file = File.Create(ScreenshotPath(name));
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap)); encoder.Save(file);
     }

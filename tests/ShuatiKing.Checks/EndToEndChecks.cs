@@ -12,7 +12,7 @@ internal static class EndToEndChecks
 {
     internal static void Run()
     {
-        var settingsPath = Path.GetFullPath($".artifacts/full-flow-{Guid.NewGuid()}.dat");
+        var settingsPath = Program.TestPath("full-flow.dat");
         var settings = new SettingsStore(settingsPath); var learningStore = new LearningStore(settings.LearningPath);
         var window = new MainWindow(settings); window.Show(); window.UpdateLayout();
         var host = (ContentControl)window.FindName("PageHost");

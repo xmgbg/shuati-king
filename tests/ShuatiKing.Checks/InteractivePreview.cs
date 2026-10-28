@@ -10,7 +10,7 @@ internal static class InteractivePreview
     internal static void Run()
     {
         var app = new App(); app.InitializeComponent();
-        var settingsPath = Path.GetFullPath($".artifacts/history-preview-{Guid.NewGuid()}.dat");
+        var settingsPath = Program.TestPath("history-preview.dat");
         var settings = new SettingsStore(settingsPath); var state = new LearningState();
         foreach (var bank in SampleLibrary.CreateExamples().Take(2))
         {

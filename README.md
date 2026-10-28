@@ -83,11 +83,16 @@ dotnet run --project src/ShuatiKing.App
 # 构建桌面应用
 dotnet build src/ShuatiKing.App --configuration Release
 
+# 发布自带运行时的单文件 EXE
+dotnet publish src/ShuatiKing.App -p:PublishProfile=Portable
+
 # 运行 WPF 界面与交互校验
 dotnet run --project tests/ShuatiKing.Checks
 ```
 
-校验使用独立的临时设置文件，覆盖题库切换、个人资料恢复、配置数量上限、模型重启提示和连接状态展示。界面渲染图输出到 `.artifacts` 目录。
+校验使用独立的临时设置文件，覆盖题库切换、个人资料恢复、配置数量上限、模型重启提示和连接状态展示。临时校验数据在结束后自动清理。默认不生成截图；需要检查页面时，使用 `dotnet run --project tests/ShuatiKing.Checks -- --screenshots`，图片保存到 `.scratch/screenshots/`。
+
+构建产物统一保存在 `.artifacts/`，不进入 Git：`app/ShuatiKing.exe` 是可直接运行的发布版本，`bin/` 和 `obj/` 存放编译文件，`checks/` 存放校验输出。重复发布会更新同一个 EXE。
 
 ## 本地设置
 
