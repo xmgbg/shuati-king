@@ -20,6 +20,7 @@ public partial class MainWindow : Window
     private PracticeView? practiceView;
     private WrongBookView? wrongView;
     private ExamView? examView;
+    private ExamHistoryView? historyView;
     private bool selectingTab;
     private readonly bool canSaveLearning = true;
 
@@ -63,6 +64,7 @@ public partial class MainWindow : Window
         else if (title == "刷题") ShowPractice();
         else if (title == "错题本") ShowWrongs();
         else if (title == "模拟考试") ShowExam();
+        else if (title == "考试记录") ShowHistory();
         else ShowPlaceholder(title);
     }
 
@@ -113,7 +115,7 @@ public partial class MainWindow : Window
     {
         if (PageHost.Content is ExamView exam) exam.PauseForNavigation();
         SelectTab("错题本");
-        wrongView ??= new WrongBookView(learning, (id, name) => { ShowPractice(); practiceView!.StartWrong(id, name); });
+        wrongView ??= new WrongBookView(learning, (id, name) => { ShowPractice(); practiceView!.StartWrong(id, name); }, () => ShowPractice());
         wrongView.Refresh(); PageHost.Content = wrongView;
     }
     private void SelectTab(string name)
@@ -126,8 +128,15 @@ public partial class MainWindow : Window
     private void ShowExam(SampleLibrary? bank = null)
     {
         SelectTab("模拟考试");
-        examView ??= new ExamView(learning, library.Banks, SaveLearning, ShowWrongs, () => settings.QuestionFontSize);
+        examView ??= new ExamView(learning, library.Banks, SaveLearning, ShowWrongs, () => settings.QuestionFontSize, ShowHistory);
         examView.ShowSetup(bank); PageHost.Content = examView;
+    }
+    private void ShowHistory()
+    {
+        if (PageHost.Content is ExamView exam) exam.PauseForNavigation();
+        SelectTab("考试记录");
+        historyView ??= new ExamHistoryView(learning, () => ShowExam(), () => settings.QuestionFontSize);
+        historyView.Refresh(); PageHost.Content = historyView;
     }
     private void SaveLearning()
     {

@@ -73,13 +73,31 @@ public static class LearningRules
             Random.Shared.Shuffle(pool);
             items.AddRange(pool.Take(counts[t]).Select(q => new AnswerItem { Question = Snapshot(q), Points = scores[t] }));
         }
-        return new() { BankId = bank.Id, BankName = bank.Name, Items = items, DurationSeconds = minutes * 60.0, RemainingSeconds = minutes * 60.0 };
+        return new() { BankId = bank.Id, BankName = bank.Name, Items = items, StartedAt = DateTimeOffset.Now, DurationSeconds = minutes * 60.0, RemainingSeconds = minutes * 60.0 };
     }
 
     public static void FinishExam(LearningState state, ExamSession exam, bool timeout)
     {
         if (exam.Finished) return;
         foreach (var item in exam.Items) Record(state, exam.BankId, exam.BankName, item);
-        exam.Finished = true; exam.Paused = false; exam.TimedOut = timeout;
+        exam.Finished = true; exam.Paused = false; exam.TimedOut = timeout; exam.FinishedAt = DateTimeOffset.Now;
+        ArchiveExam(state, exam);
+    }
+    public static AnswerItem SnapshotAnswer(AnswerItem item) => new()
+    {
+        Question = Snapshot(item.Question), Selected = [.. item.Selected], Judgment = item.Judgment, Blanks = [.. item.Blanks],
+        Submitted = item.Submitted, Correct = item.Correct, Points = item.Points
+    };
+
+    public static void ArchiveExam(LearningState state, ExamSession exam)
+    {
+        if (!exam.Finished || state.ExamHistory.Any(saved => saved.Id == exam.Id)) return;
+        state.ExamHistory.Add(new()
+        {
+            Id = exam.Id, BankId = exam.BankId, BankName = exam.BankName, StartedAt = exam.StartedAt, FinishedAt = exam.FinishedAt,
+            Items = exam.Items.Select(SnapshotAnswer).ToList(), Index = 0,
+            DurationSeconds = exam.DurationSeconds, RemainingSeconds = exam.RemainingSeconds,
+            Paused = false, Finished = true, TimedOut = exam.TimedOut
+        });
     }
 }

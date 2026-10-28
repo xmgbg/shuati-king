@@ -23,7 +23,7 @@ public partial class PracticeView : UserControl
     public void ShowSetup(SampleLibrary? bank = null)
     {
         Setup.Visibility = Visibility.Visible; SessionPanel.Visibility = CompletionPanel.Visibility = Visibility.Collapsed;
-        BankPicker.ItemsSource = banks; BankPicker.SelectedItem = bank ?? banks.FirstOrDefault();
+        BankPicker.ItemsSource = banks; BankPicker.SelectedItem = bank ?? BankPicker.SelectedItem ?? banks.FirstOrDefault();
         ResumeCard.Visibility = state.Practice is null ? Visibility.Collapsed : Visibility.Visible;
         if (state.Practice is { } p)
         {

@@ -20,10 +20,12 @@ public partial class ExamView : UserControl
     private readonly Stopwatch clock = new();
     private double lastTick, lastSave;
     private bool initializing = true;
-    public ExamView(LearningState state, IReadOnlyList<SampleLibrary> banks, Action save, Action openWrongs, Func<int> fontSize)
+    public ExamView(LearningState state, IReadOnlyList<SampleLibrary> banks, Action save, Action openWrongs, Func<int> fontSize, Action? openHistory = null)
     {
         this.state = state; this.banks = banks; this.save = save; this.openWrongs = openWrongs; this.fontSize = fontSize;
         InitializeComponent();
+        if (openHistory is null) ResultHistoryButton.Visibility = Visibility.Collapsed;
+        else ResultHistoryButton.Click += (_, _) => openHistory();
         var names = new[] { "单选题", "多选题", "判断题", "填空题" };
         InitializeTypeSettings();
         for (var i = 0; i < 4; i++) BuildTypeRow(i, names[i]);
@@ -33,7 +35,7 @@ public partial class ExamView : UserControl
     }
     public void ShowSetup(SampleLibrary? bank = null)
     {
-        PauseForNavigation();
+        PauseForNavigation(); PageHeading.Text = "模拟考试";
         Setup.Visibility = Visibility.Visible; ExamPanel.Visibility = ResultPanel.Visibility = Visibility.Collapsed;
         BankPicker.ItemsSource = banks; BankPicker.SelectedItem = bank ?? BankPicker.SelectedItem ?? banks.FirstOrDefault();
         ResumeCard.Visibility = state.Exam is null ? Visibility.Collapsed : Visibility.Visible;
@@ -112,7 +114,7 @@ public partial class ExamView : UserControl
         Setup.Visibility = Visibility.Collapsed; RulesPopup.IsOpen = false; Feedback.Text = ""; SubmitConfirmation.Visibility = Visibility.Collapsed;
         PageLayout.Margin = new Thickness(30, 24, 30, 20); PageHeading.FontSize = 32;
         if (exam.Finished) { ShowResult(); return; }
-        ResultPanel.Visibility = Visibility.Collapsed; ExamPanel.Visibility = Visibility.Visible; RenderQuestion(); PaintClock();
+        PageHeading.Text = "模拟考试"; ResultPanel.Visibility = Visibility.Collapsed; ExamPanel.Visibility = Visibility.Visible; RenderQuestion(); PaintClock();
     }
     private void RenderQuestion()
     {
@@ -191,9 +193,7 @@ public partial class ExamView : UserControl
     {
         var exam = state.Exam!; ExamPanel.Visibility = Setup.Visibility = Visibility.Collapsed; ResultPanel.Visibility = Visibility.Visible;
         ResultHeading.Text = exam.TimedOut ? "时间已到，已自动交卷" : "已交卷";
-        ResultScore.Text = $"{exam.Score:0.##} / {exam.Total:0.##} 分";
-        ResultSummary.Text = $"共 {exam.Items.Count} 题 · 答对 {exam.Items.Count(i => i.Correct)} 题 · 未作答 {exam.Items.Count(i => !i.Answered)} 题\n用时 {FormatTime(exam.DurationSeconds - exam.RemainingSeconds)}";
-        Feedback.Text = "作答和评分已保存，重复打开不会重复交卷。";
+        PageHeading.Text = "考试结果"; ResultDetailHost.Content = new ExamResultView(exam, fontSize()); Feedback.Text = "";
     }
     private void BackToSetup(object sender, RoutedEventArgs e) => ShowSetup();
     private void OpenWrongs(object sender, RoutedEventArgs e) => openWrongs();

@@ -26,6 +26,9 @@ public sealed class PracticeSession
 
 public sealed class ExamSession
 {
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public DateTimeOffset? StartedAt { get; set; }
+    public DateTimeOffset? FinishedAt { get; set; }
     public Guid BankId { get; set; }
     public string BankName { get; set; } = "";
     public List<AnswerItem> Items { get; set; } = [];
@@ -56,4 +59,5 @@ public sealed class LearningState
     public PracticeSession? Practice { get; set; }
     public ExamSession? Exam { get; set; }
     public List<WrongEntry> Wrongs { get; set; } = [];
+    public List<ExamSession> ExamHistory { get; set; } = [];
 }

@@ -13,10 +13,12 @@ internal static class Program
 {
     private static int assertions;
     [STAThread]
-    private static void Main()
+    private static void Main(string[] args)
     {
+        if (args.Contains("--preview-history")) { InteractivePreview.Run(); return; }
         QuestionChecks.Run();
         LearningChecks.Models();
+        ExamHistoryChecks.Models();
         var app = new App();
         app.InitializeComponent();
         app.ShutdownMode = ShutdownMode.OnExplicitShutdown;
@@ -116,6 +118,7 @@ internal static class Program
         ExamChecks.Run(window);
         ExamTypeChecks.Run(window);
         ExamLayoutChecks.Run(window);
+        ExamHistoryChecks.Views(window);
         window.Close();
         var withAvatar = store.Load();
         withAvatar.Avatar = Convert.ToBase64String(File.ReadAllBytes("assets/logo.png"));
@@ -136,6 +139,7 @@ internal static class Program
         File.Delete(settingsPath);
         File.Delete(store.LearningPath);
         LearningNavigationChecks.Run();
+        EndToEndChecks.Run();
         Console.WriteLine($"通过 {assertions} 项校验：首页、个人设置、导入审核、练习错题与模拟考试。");
     }
 

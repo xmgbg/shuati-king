@@ -10,8 +10,13 @@ public partial class WrongBookView : UserControl
     private readonly Action<Guid, string> retry;
     private bool refreshing;
     private sealed record BankChoice(Guid Id, string Name);
-    public WrongBookView(LearningState state, Action<Guid, string> retry)
-    { this.state = state; this.retry = retry; InitializeComponent(); Refresh(); }
+    public WrongBookView(LearningState state, Action<Guid, string> retry, Action? openPractice = null)
+    {
+        this.state = state; this.retry = retry; InitializeComponent();
+        if (openPractice is null) PracticeButton.Visibility = Visibility.Collapsed;
+        else PracticeButton.Click += (_, _) => openPractice();
+        Refresh();
+    }
     public void Refresh()
     {
         var selected = BankFilter.SelectedItem as BankChoice;
