@@ -74,23 +74,23 @@
 ```powershell
 git clone https://github.com/xmgbg/shuati-king.git
 cd shuati-king
-dotnet run --project src/ShuatiKing.App
+dotnet run --project src
 ```
 
 ## 构建与校验
 
 ```powershell
 # 构建桌面应用
-dotnet build src/ShuatiKing.App --configuration Release
+dotnet build src --configuration Release
 
 # 发布自带运行时的单文件 EXE
-dotnet publish src/ShuatiKing.App -p:PublishProfile=Portable
+dotnet publish src -p:PublishProfile=Portable
 
 # 运行 WPF 界面与交互校验
-dotnet run --project tests/ShuatiKing.Checks
+dotnet run --project tests
 ```
 
-校验使用独立的临时设置文件，覆盖题库切换、个人资料恢复、配置数量上限、模型重启提示和连接状态展示。临时校验数据在结束后自动清理。默认不生成截图；需要检查页面时，使用 `dotnet run --project tests/ShuatiKing.Checks -- --screenshots`，图片保存到 `.scratch/screenshots/`。
+校验使用独立的临时设置文件，覆盖题库切换、个人资料恢复、配置数量上限、模型重启提示和连接状态展示。临时校验数据在结束后自动清理。默认不生成截图；需要检查页面时，使用 `dotnet run --project tests -- --screenshots`，图片保存到 `.scratch/screenshots/`。
 
 构建产物统一保存在 `.artifacts/`，不进入 Git：`app/ShuatiKing.exe` 是可直接运行的发布版本，`bin/` 和 `obj/` 存放编译文件，`checks/` 存放校验输出。重复发布会更新同一个 EXE。
 
@@ -111,12 +111,12 @@ shuati-king/
 ├─ assets/                       # LOGO、界面预览与架构图
 ├─ design-previews/              # 界面设计参考
 ├─ docs/                         # 架构图绘图源文件
-├─ src/ShuatiKing.App/
+├─ src/
 │  ├─ App.xaml                   # 应用入口与全局资源
 │  ├─ MainWindow.xaml            # 主窗口与顶部导航
 │  ├─ Models/                    # 示例题库和本地设置模型
 │  ├─ Services/                  # 设置存储、主题与连接状态演示
 │  ├─ Styles/                    # 共享控件样式和颜色资源
 │  └─ Views/                     # 题库首页、个人资料与 AI 配置
-└─ tests/ShuatiKing.Checks/       # 界面与交互校验
+└─ tests/                        # 界面与交互校验
 ```

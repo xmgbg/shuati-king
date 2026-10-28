@@ -4,5 +4,5 @@
   <UseWPF>true</UseWPF><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings>
   <AssemblyName>ShuatiKing</AssemblyName><RootNamespace>ShuatiKing</RootNamespace>
  </PropertyGroup>
- <ItemGroup><Resource Include="..\..\assets\logo.png" Link="Assets\logo.png" /></ItemGroup>
+ <ItemGroup><Resource Include="..\assets\logo.png" Link="Assets\logo.png" /></ItemGroup>
 </Project>
