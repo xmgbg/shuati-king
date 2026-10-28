@@ -4,7 +4,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
 SCALE = 2
-image = Image.new('RGB', (1800 * SCALE, 1210 * SCALE), '#F5F8FE')
+image = Image.new('RGB', (1800 * SCALE, 1120 * SCALE), '#F5F8FE')
 draw = ImageDraw.Draw(image)
 BLUE, INK, MUTED, LINE = '#075AF5', '#182844', '#52647D', '#D8E3F2'
 
@@ -38,30 +38,30 @@ def arrow(points):
     draw.polygon(head, fill='#8FAAD3')
 
 
-text(60, 44, '刷题KING · 应用架构', 43, bold=True)
-text(60, 112, 'Windows 桌面应用 · 页面、状态与服务的主要关系', 24, MUTED)
+text(60, 44, '刷题KING · 系统架构', 43, bold=True)
+text(60, 112, 'WPF 桌面应用 / 题库、练习与考试 / 本地数据', 24, MUTED)
 
-arrow([(900, 292), (900, 326), (320, 326), (320, 360)])
-arrow([(900, 292), (900, 360)])
-arrow([(1160, 432), (1220, 432)])
-arrow([(320, 506), (320, 590)])
-arrow([(900, 506), (900, 590)])
-arrow([(1480, 506), (1480, 590)])
-arrow([(1300, 506), (1300, 548), (1060, 548), (1060, 590)])
-arrow([(900, 722), (900, 770), (620, 770), (620, 822)])
-arrow([(900, 722), (900, 770), (1210, 770), (1210, 822)])
-arrow([(1210, 956), (1210, 1028)])
+for x in (320, 900, 1480):
+    arrow([(900, 292), (900, 322), (x, 322), (x, 356)])
+    arrow([(x, 506), (x, 566)])
+arrow([(900, 716), (900, 776)])
+arrow([(1480, 716), (1480, 776)])
 
-box(560, 180, 680, 112, 'App.xaml  /  MainWindow', ['应用启动 · 顶部导航 · 页面切换'], primary=True)
-box(60, 360, 520, 146, '题库首页 · LibraryView', ['示例题库列表 / 所选题库详情', '继续练习区域'])
-box(640, 360, 520, 146, '我的 · ProfileView', ['昵称 / 头像 / 个性化设置', '承载 AI 配置页面'])
-box(1220, 360, 520, 146, 'AI 配置 · AiSettingsView', ['三套配置 / 当前选择', '模型重启提示 / 连接状态'])
-box(60, 590, 520, 132, 'SampleLibrary', ['示例题库模型', '题型数量 / 来源 / 审核状态'])
-box(640, 590, 520, 132, 'LocalSettings / AiConfiguration', ['个人资料 / 主题 / 题目字号', '服务地址 / 密钥 / 模型'])
-box(1220, 590, 520, 132, 'ConnectionPreview', ['连接反馈与错误码演示', '不发起网络请求'])
-box(380, 822, 480, 134, 'ThemeManager', ['主题资源切换', '浅色 / 深色 / 跟随系统'])
-box(940, 822, 540, 134, 'SettingsStore', ['JSON 序列化与读写', 'Windows DPAPI 当前用户加密'])
-box(760, 1028, 900, 132, '本机设置文件 · settings.dat', [r'%LOCALAPPDATA%\ShuatiKing', '保存个人资料、偏好与 AI 配置'])
-text(60, 1136, '架构对应仓库现有实现', 22, MUTED)
+box(560, 180, 680, 112, 'App.xaml / MainWindow', ['应用启动 · 顶部导航 · 页面切换'], primary=True)
+box(60, 356, 520, 150, '题库与审核页面', ['LibraryView / ImportView', 'ReviewView / PackageDialog'])
+box(640, 356, 520, 150, '练习、考试与历史页面', ['PracticeView / WrongBookView', 'ExamView / ExamResultView / ExamHistoryView'])
+box(1220, 356, 520, 150, '个人资料与设置页面', ['ProfileView / AiSettingsView', 'ThemeManager：主题资源'])
 
-image.resize((1800, 1210), Image.Resampling.LANCZOS).save(ROOT / 'assets' / 'architecture.png', optimize=True)
+box(60, 566, 520, 150, '题库与题目模型', ['SampleLibrary / QuestionDraft', '审核校验 · 选项、答案与解析'])
+box(640, 566, 520, 150, '学习状态与规则', ['LearningState / LearningRules', '作答 · 判分 · 错题 · 考试快照'])
+box(1220, 566, 520, 150, '个人资料与 AI 配置', ['LocalSettings / AiConfiguration', '昵称 · 头像 · 主题 · 模型配置'])
+
+box(640, 776, 520, 168, 'LearningStore', ['JSON 本地读写', '练习进度、错题与考试历史', 'settings.learning.json'])
+box(1220, 776, 520, 168, 'SettingsStore', ['JSON 序列化 + Windows DPAPI', '当前 Windows 用户范围加密', 'settings.dat'])
+text(320, 804, '流程演示', 27, bold=True, center=True)
+text(320, 853, 'WorkflowPreview / ConnectionPreview', 21, MUTED, center=True)
+text(320, 895, '尚未接入真实文档解析与 AI 服务', 22, MUTED, center=True)
+text(60, 1010, r'本地数据目录：%LOCALAPPDATA%\ShuatiKing', 25, bold=True)
+text(60, 1062, '题库使用示例数据；学习记录与个人设置分别保存', 22, MUTED)
+
+image.resize((1800, 1120), Image.Resampling.LANCZOS).save(ROOT / 'assets' / 'architecture.png', optimize=True)
