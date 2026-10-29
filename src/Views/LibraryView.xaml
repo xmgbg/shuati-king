@@ -7,7 +7,7 @@
      <Button Content="&#xE898;  导入资料" FontFamily="Microsoft YaHei UI, Segoe MDL2 Assets" Style="{StaticResource PrimaryButton}" Click="PreviewAction" Tag="导入资料" Margin="0,0,12,0"/>
      <Button Content="&#xE8B5;  导入题库" FontFamily="Microsoft YaHei UI, Segoe MDL2 Assets" Click="PreviewAction" Tag="导入题库"/>
     </StackPanel>
-    <StackPanel Orientation="Horizontal"><TextBlock Text="我的题库" Style="{StaticResource PageTitle}"/><TextBlock Text="每份资料，一个题库" Style="{StaticResource MutedText}" Margin="24,0,12,0"/></StackPanel>
+    <TextBlock Text="我的题库" Style="{StaticResource PageTitle}"/>
    </DockPanel>
    <Grid Grid.Row="2">
     <Grid.ColumnDefinitions><ColumnDefinition Width="1.62*"/><ColumnDefinition Width="24"/><ColumnDefinition Width="*" MinWidth="318"/></Grid.ColumnDefinitions>

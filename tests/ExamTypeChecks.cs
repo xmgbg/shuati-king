@@ -17,6 +17,25 @@ internal static class ExamTypeChecks
         ((ContentControl)window.FindName("PageHost")).Content = view; window.UpdateLayout();
         var panel = (StackPanel)view.FindName("TypeRows");
         var rows = panel.Children.Cast<Grid>().ToArray();
+        Program.Check(rows.Length == 7 && rows.Skip(4).Select(row => ((StackPanel)row.Children[0]).Children.OfType<TextBlock>().Single().Text)
+            .SequenceEqual(new[] { "简答题", "材料分析题", "名词解释题" }), "组卷设置包含三类新增主观题");
+        Program.Check(rows.Skip(4).All(row => Toggle(row).IsChecked == false && Inputs(row).All(input => !input.IsEnabled)),
+            "新增题型默认未选中且不影响原有组卷");
+        foreach (var row in rows.Skip(4))
+        {
+            Toggle(row).IsChecked = true;
+            Inputs(row)[0].Text = "2"; Inputs(row)[1].Text = "10";
+            Program.Check(Inputs(row).All(input => input.IsEnabled) && ((TextBlock)view.FindName("PaperTotal")).Text == "60",
+                "新增题型可独立设置题量与分值并计入总分");
+            Click(view, "StartExamButton");
+            Program.Check(state.Exam is null && ((TextBlock)view.FindName("Feedback")).Text.Contains("可用 0"),
+                "新增题型没有可用题目时明确拦住开考");
+            Toggle(row).IsChecked = false;
+        }
+        view.MoveTypeRow(6, 0);
+        Program.Check((int)((Grid)panel.Children[0]).Tag == 6 && Inputs(rows[6])[0].Text == "2" && Inputs(rows[6])[1].Text == "10",
+            "新增题型拖动排序后保留题量与分值");
+        view.MoveTypeRow(6, 6);
         foreach (var row in rows) Toggle(row).IsChecked = false;
         Click(view, "StartExamButton");
         Program.Check(state.Exam is null, "未选题型不能开考");

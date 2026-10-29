@@ -14,8 +14,9 @@ public partial class ExamView : UserControl
     private readonly Action save;
     private readonly Action openWrongs;
     private readonly Func<int> fontSize;
-    private readonly TextBox[] countInputs = new TextBox[4];
-    private readonly TextBox[] scoreInputs = new TextBox[4];
+    private static readonly string[] TypeNames = ["单选题", "多选题", "判断题", "填空题", "简答题", "材料分析题", "名词解释题"];
+    private readonly TextBox[] countInputs = new TextBox[TypeNames.Length];
+    private readonly TextBox[] scoreInputs = new TextBox[TypeNames.Length];
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromMilliseconds(250) };
     private readonly Stopwatch clock = new();
     private double lastTick, lastSave;
@@ -26,10 +27,12 @@ public partial class ExamView : UserControl
         InitializeComponent();
         if (openHistory is null) ResultHistoryButton.Visibility = Visibility.Collapsed;
         else ResultHistoryButton.Click += (_, _) => openHistory();
-        var names = new[] { "单选题", "多选题", "判断题", "填空题" };
         InitializeTypeSettings();
-        for (var i = 0; i < 4; i++) BuildTypeRow(i, names[i]);
+        for (var i = 0; i < TypeNames.Length; i++) BuildTypeRow(i, TypeNames[i]);
         timer.Tick += (_, _) => Pulse();
+        Setup.SizeChanged += (_, _) => ApplySetupDensity();
+        TypeRowsScroll.ScrollChanged += (_, _) =>
+            TableHeader.Margin = new Thickness(0, 0, Math.Max(0, TypeRowsScroll.ActualWidth - TypeRowsScroll.ViewportWidth), 0);
         SizeChanged += (_, _) => ApplySetupDensity(); Unloaded += (_, _) => RulesPopup.IsOpen = false;
         initializing = false; ShowSetup();
     }
@@ -52,7 +55,7 @@ public partial class ExamView : UserControl
     {
         var bank = BankPicker.SelectedItem as SampleLibrary;
         BankSource.Text = bank is null ? "" : $"{bank.Source} · {bank.ConfirmedCount} 题";
-        for (var i = 0; i < 4; i++)
+        for (var i = 0; i < TypeNames.Length; i++)
         {
             availableInputs[i].Text = (bank?.Questions.Count(q => (int)q.Type == i && q.IsConfirmed && q.ValidationError is null) ?? 0).ToString();
             subtotalLabels[i].Text = typeSelections[i].IsChecked == true && int.TryParse(countInputs[i].Text, out var count) && count >= 0 && decimal.TryParse(scoreInputs[i].Text, out var score) && score > 0
@@ -70,7 +73,7 @@ public partial class ExamView : UserControl
     private void ApplySetupDensity()
     {
         if (Setup.Visibility != Visibility.Visible) return;
-        bool compact = ActualHeight < 660 || ActualWidth < 1200;
+        bool compact = ActualHeight < 820 || ActualWidth < 1200;
         PageLayout.Margin = compact ? new Thickness(24, 16, 24, 16) : new Thickness(30, 24, 30, 20);
         PageHeading.FontSize = compact ? 28 : 32;
         BankToolbar.Margin = compact ? new Thickness(20, 16, 20, 16) : new Thickness(28, 24, 28, 24);
@@ -79,7 +82,7 @@ public partial class ExamView : UserControl
         ExamSummarySection.Padding = new Thickness(compact ? 20 : 32);
         TypeHeading.Margin = new Thickness(0, 0, 0, compact ? 10 : 18);
         TableHeader.Height = compact ? 34 : 48;
-        foreach (Grid row in TypeRows.Children) row.Height = compact ? 48 : 64;
+        foreach (Grid row in TypeRows.Children) row.Height = compact ? 44 : 64;
         SelectionSummary.Margin = new Thickness(4, compact ? 12 : 20, 0, 0);
         ExamSettingsHeading.Margin = new Thickness(0, 0, 0, compact ? 20 : 30);
         SummaryDivider.Margin = new Thickness(0, compact ? 16 : 28, 0, compact ? 16 : 28);
@@ -87,11 +90,16 @@ public partial class ExamView : UserControl
         RulesButton.Margin = new Thickness(0, compact ? 8 : 14, 0, 0);
         QuestionTotal.FontSize = PaperTotal.FontSize = compact ? 32 : 44;
         StartExamButton.Height = compact ? 44 : 52;
+        var chrome = BankToolbar.ActualHeight + BankToolbar.Margin.Top + BankToolbar.Margin.Bottom + 14
+            + TypeTableSection.Padding.Top + TypeTableSection.Padding.Bottom
+            + TypeHeading.ActualHeight + TypeHeading.Margin.Bottom + TableHeader.Height
+            + SelectionSummary.ActualHeight + SelectionSummary.Margin.Top;
+        TypeRowsScroll.MaxHeight = Math.Max(132, Setup.ActualHeight - chrome - 8);
     }
     private bool TrySettings(out int[] counts, out decimal[] scores)
     {
-        counts = new int[4]; scores = new decimal[4];
-        for (var i = 0; i < 4; i++)
+        counts = new int[TypeNames.Length]; scores = new decimal[TypeNames.Length];
+        for (var i = 0; i < TypeNames.Length; i++)
         {
             if (typeSelections[i].IsChecked != true) { scores[i] = 1; continue; }
             if (!int.TryParse(countInputs[i].Text, out counts[i]) || counts[i] < 0 || !decimal.TryParse(scoreInputs[i].Text, out scores[i]) || scores[i] <= 0) return false;
@@ -103,9 +111,13 @@ public partial class ExamView : UserControl
         if (BankPicker.SelectedItem is not SampleLibrary bank) { Feedback.Text = "请选择题库。"; return; }
         if (!TrySettings(out var counts, out var scores) || counts.Sum() == 0 || !int.TryParse(MinutesInput.Text, out var minutes) || minutes <= 0)
         { Feedback.Text = "题量须为非负整数且至少一题，请选择至少一种题型，分值和考试时长须大于零。"; return; }
-        if (LearningRules.Shortage(bank, counts) is { } missing) { Feedback.Text = missing; return; }
+        var unavailable = Enumerable.Range(4, TypeNames.Length - 4).Where(i => counts[i] > 0)
+            .Select(i => $"{TypeNames[i]}缺 {counts[i]} 道（可用 0 道）").ToArray();
+        if (unavailable.Length > 0)
+        { Feedback.Text = string.Join("；", unavailable) + "。请调整题量后再开始，不会重复抽题。"; return; }
+        if (LearningRules.Shortage(bank, counts[..4]) is { } missing) { Feedback.Text = missing; return; }
         if (state.Exam is { Finished: false } && MessageBox.Show("新考试会替换当前未交卷试卷。是否继续？", "开始新考试", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
-        state.Exam = LearningRules.CreateExam(bank, counts, scores, minutes, TypeRows.Children.Cast<Grid>().Where(row => typeSelections[(int)row.Tag].IsChecked == true).Select(row => (QuestionType)(int)row.Tag).ToArray()); QuestionMap.Children.Clear(); save(); OpenPaper(); BeginClock();
+        state.Exam = LearningRules.CreateExam(bank, counts[..4], scores[..4], minutes, TypeRows.Children.Cast<Grid>().Where(row => (int)row.Tag < 4 && typeSelections[(int)row.Tag].IsChecked == true).Select(row => (QuestionType)(int)row.Tag).ToArray()); QuestionMap.Children.Clear(); save(); OpenPaper(); BeginClock();
     }
     private void OpenPrevious(object sender, RoutedEventArgs e) => OpenPaper();
     public void OpenPaper()

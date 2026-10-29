@@ -11,8 +11,8 @@ namespace ShuatiKing.Views;
 
 public partial class ExamView
 {
-    private readonly CheckBox[] typeSelections = new CheckBox[4];
-    private readonly TextBlock[] availableInputs = new TextBlock[4], subtotalLabels = new TextBlock[4];
+    private readonly CheckBox[] typeSelections = new CheckBox[TypeNames.Length];
+    private readonly TextBlock[] availableInputs = new TextBlock[TypeNames.Length], subtotalLabels = new TextBlock[TypeNames.Length];
     private readonly DispatcherTimer holdTimer = new() { Interval = TimeSpan.FromMilliseconds(350) };
     private Grid? heldRow;
     private Button? heldHandle;
@@ -54,7 +54,7 @@ public partial class ExamView
         row.ColumnDefinitions.Add(new() { MinWidth = 100 }); row.ColumnDefinitions.Add(new() { MinWidth = 100 });
         row.ColumnDefinitions.Add(new() { Width = new GridLength(0.75, GridUnitType.Star), MinWidth = 70 });
         var label = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
-        var circle = new CheckBox { IsChecked = true, Style = (Style)FindResource("TypeCircle") };
+        var circle = new CheckBox { IsChecked = type < 4, Style = (Style)FindResource("TypeCircle") };
         System.Windows.Automation.AutomationProperties.SetName(circle, "启用" + name);
         typeSelections[type] = circle;
         var title = new TextBlock { Text = name, FontSize = 16, Margin = new Thickness(8, 0, 0, 0), Cursor = Cursors.Hand };
@@ -83,6 +83,8 @@ public partial class ExamView
         var score = new TextBox { Text = type < 2 ? "2" : "1", MaxLength = 8, Width = 80, Height = 38, MinHeight = 38, Padding = new Thickness(10, 6, 10, 6), FontSize = 16, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
         System.Windows.Automation.AutomationProperties.SetName(count, name + "考试题量");
         System.Windows.Automation.AutomationProperties.SetName(score, name + "每题分值");
+        count.IsEnabled = score.IsEnabled = circle.IsChecked == true;
+        title.SetResourceReference(TextBlock.ForegroundProperty, circle.IsChecked == true ? "TextBrush" : "MutedBrush");
         countInputs[type] = count; scoreInputs[type] = score;
         count.TextChanged += SettingsChanged; score.TextChanged += SettingsChanged;
         circle.Checked += (_, e) => { count.IsEnabled = score.IsEnabled = true; title.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush"); SettingsChanged(circle, e); };

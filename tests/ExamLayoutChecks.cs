@@ -51,6 +51,12 @@ internal static class ExamLayoutChecks
         Program.Capture(window, "exam-redesign-compact");
         Program.Check(setup.ExtentHeight <= setup.ViewportHeight + 1 && setup.ExtentWidth <= setup.ViewportWidth + 1, "最小窗口下完整显示组卷面板且无滚动");
         Program.Check(start.TranslatePoint(new Point(), setup).Y + start.ActualHeight <= setup.ViewportHeight, "最小窗口下开始考试始终可见");
+        var typeScroll = (ScrollViewer)view.FindName("TypeRowsScroll");
+        rows[^1].BringIntoView(); window.UpdateLayout();
+        Program.Check(typeScroll.VerticalOffset > 0 &&
+            rows[^1].TranslatePoint(new Point(), typeScroll).Y + rows[^1].ActualHeight <= typeScroll.ActualHeight + 1,
+            "小窗口下通过题型表内部滚动可完整访问最后一个新增题型");
+        typeScroll.ScrollToTop(); window.UpdateLayout();
         ThemeManager.Apply("深色"); Program.Capture(window, "exam-redesign-dark");
         ThemeManager.Apply("浅色");
         rules.IsChecked = true;
