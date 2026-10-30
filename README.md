@@ -16,7 +16,7 @@
 
 刷题KING是一款基于 C#、.NET 10 和 WPF 开发的 Windows 桌面刷题软件，围绕资料建库、题目审核、日常练习、模拟考试与错题复习组织学习流程。无需注册账号，个人设置与学习记录保存在本机。
 
-项目面向 PDF、Word 和文字资料建库场景。目前可基于示例题库体验练习、考试和历史回看；文件内容提取、AI 出题、AI 连接检查及题库包导入导出仍为流程演示，尚未接入真实文档解析或模型服务。
+项目面向 PDF、Word 和文字资料建库场景。目前可基于示例题库体验练习、考试和历史回看；AI 配置已接入真实的 OpenAI 兼容 Chat Completions 连接检查；文件内容提取、AI 出题及题库包导入导出仍为流程演示。
 
 ## 核心功能
 
@@ -41,8 +41,6 @@
 ![刷题KING系统架构：WPF 页面、题库模型、学习规则与本地存储](assets/architecture.png)
 
 主窗口负责导航和页面切换。题库与审核页面操作题库模型，练习、考试及历史页面共享学习状态与评分规则；学习记录由 `LearningStore` 保存，个人资料和 AI 配置由 `SettingsStore` 加密保存。
-
-架构图源文件：[docs/render_architecture.py](docs/render_architecture.py)。
 
 ## 技术栈
 
@@ -81,8 +79,6 @@ shuati-king/
 │  └─ ShuatiKing.App.csproj
 ├─ tests/                       # 模型、页面交互与学习流程校验
 ├─ assets/                      # LOGO、界面截图与架构图
-├─ docs/                        # 架构图绘图源文件
-├─ design-previews/             # 界面设计参考
 ├─ Directory.Build.props        # 统一构建产物路径
 ├─ README.md
 └─ LICENSE
@@ -104,6 +100,18 @@ cd shuati-king
 dotnet run --project src
 ```
 
+### 配置 AI 服务
+
+打开“我的 → AI 配置”，填写配置名称、服务地址、API 密钥和模型名称，再点击“检查连接”。检查针对当前正在编辑的配置，不会自动切换当前使用的配置。
+
+| 服务 | API 基础地址 |
+| --- | --- |
+| DeepSeek | https://api.deepseek.com |
+| 小米 MiMo | https://api.xiaomimimo.com/v1 |
+
+模型名称填写服务控制台实际开通的模型 ID；其他 OpenAI 兼容服务也可自行填写地址。支持 API 基础地址和完整的 /chat/completions 地址。
+
+检查会发送一次简短模型请求，可能产生调用费用；默认等待上限为 90 秒，不自动重试。只有收到有效模型文本才显示成功，失败时显示实际 HTTP 状态码或明确的本地错误码。离开设置页面会取消正在进行的检查。保存配置后可设为当前配置，更换模型后重启生效。
 ### 发布 EXE
 
 在项目根目录执行：

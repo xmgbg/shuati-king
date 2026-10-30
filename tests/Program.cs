@@ -44,6 +44,8 @@ internal static class Program
     private static void Run(string[] args)
     {
         if (args.Contains("--preview-history")) { InteractivePreview.Run(); return; }
+        AiConnectionChecks.Run();
+        using var connectionServer = new AiTestServer();
         QuestionChecks.Run();
         LearningChecks.Models();
         ExamHistoryChecks.Models();
@@ -89,36 +91,42 @@ internal static class Program
         var tabs = (ListBox)ai.FindName("ConfigurationTabs");
         var add = (Button)ai.FindName("AddButton");
         Check(!((Button)ai.FindName("CheckButton")).IsEnabled, "未填完整不能检查连接");
-        Fill(ai, "日常出题", "model-one");
+        Fill(ai, "日常出题", "model-one", connectionServer.Endpoint);
         Click(ai, "SaveConfigurationButton");
         Check(store.Load().Configurations[0].ApiKey == "test-secret-only", "密钥加密后可恢复");
         Check(!File.ReadAllText(settingsPath).Contains("test-secret-only"), "磁盘中没有明文密钥");
         Check(((Border)ai.FindName("RestartNotice")).Visibility == Visibility.Visible, "当前模型变更提示重启");
         add.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        Fill(ai, "备用服务", "model-two"); Click(ai, "SaveConfigurationButton");
+        Fill(ai, "备用服务", "model-two", connectionServer.Endpoint); Click(ai, "SaveConfigurationButton");
         Check(store.Load().SelectedConfigurationId != ((AiConfiguration)tabs.SelectedItem).Id, "保存备用配置不自动切换");
         Click(ai, "UseConfigurationButton");
         Check(store.Load().SelectedConfigurationId == ((AiConfiguration)tabs.SelectedItem).Id, "选择当前配置保存");
         add.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        Fill(ai, "长文资料", "model-three"); Click(ai, "SaveConfigurationButton");
+        Fill(ai, "长文资料", "model-three", connectionServer.Endpoint); Click(ai, "SaveConfigurationButton");
         Check(tabs.Items.Count == 3 && !add.IsEnabled, "最多三套配置");
         add.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         Check(tabs.Items.Count == 3, "不能新增第四套");
-        tabs.SelectedIndex = 1;
-        var operation = ai.PreviewConnectionAsync();
+        tabs.SelectedIndex = 0;
+        var activeConfigurationId = store.Load().SelectedConfigurationId;
+        connectionServer.ResponseGate = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        var operation = ai.CheckConnectionAsync();
         Check(!((Button)ai.FindName("CheckButton")).IsEnabled && ((TextBlock)ai.FindName("ConnectionFeedback")).Text.Contains("正在检查"), "正在检查状态与防重复点击");
-        Check(ai.PreviewConnectionAsync().IsCompleted, "重复检查不会启动新任务");
+        Check(ai.CheckConnectionAsync().IsCompleted, "重复检查不会启动新任务");
+        connectionServer.ResponseGate.SetResult(true);
         Complete(operation, window.Dispatcher);
+        connectionServer.ResponseGate = null;
+        Check(connectionServer.RequestCount == 1 && connectionServer.LastPath == "/v1/chat/completions" && connectionServer.LastModel == "model-one", "界面实际发出一次正在编辑配置的 HTTP 请求");
         Check(((TextBlock)ai.FindName("ConnectionFeedback")).Text.Contains("HTTP 200"), "成功状态");
-        ((TextBox)ai.FindName("ModelInput")).Text = "model-two-edited";
+        Check(store.Load().SelectedConfigurationId == activeConfigurationId, "检查其他配置不会切换当前保存的 AI 配置");
+        ((TextBox)ai.FindName("ModelInput")).Text = "model-one-edited";
         Check(((Border)ai.FindName("ConnectionResult")).Visibility == Visibility.Collapsed, "修改后旧结果失效");
-        var result = (ComboBox)ai.FindName("PreviewResult");
-        result.SelectedIndex = 1;
-        Complete(ai.PreviewConnectionAsync(), window.Dispatcher);
+        connectionServer.Status = 401;
+        Complete(ai.CheckConnectionAsync(), window.Dispatcher);
         Check(((TextBlock)ai.FindName("ConnectionFeedback")).Text.Contains("HTTP 401"), "失败状态含状态码");
-        result.SelectedIndex = 5;
-        Complete(ai.PreviewConnectionAsync(), window.Dispatcher);
-        Check(((TextBlock)ai.FindName("ConnectionFeedback")).Text.Contains("LOCAL_TIMEOUT（本地错误码）"), "无响应显示本地错误码");
+        connectionServer.Status = 200; connectionServer.Body = "{}";
+        Complete(ai.CheckConnectionAsync(), window.Dispatcher);
+        Check(((TextBlock)ai.FindName("ConnectionFeedback")).Text.Contains("LOCAL_RESPONSE_INVALID（本地错误码）"), "无效模型响应显示实际状态与本地错误码");
+        Check(((Button)ai.FindName("CheckButton")).IsEnabled && ((StackPanel)ai.FindName("Editor")).IsEnabled && tabs.IsEnabled, "检查失败后恢复编辑、切换与重试入口");
         Click(ai, "SaveConfigurationButton");
         var profileScroll = Descendants<ScrollViewer>(profile).First();
         profileScroll.ScrollToBottom(); window.UpdateLayout();
@@ -188,10 +196,10 @@ internal static class Program
         var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap)); encoder.Save(file);
     }
 
-    private static void Fill(AiSettingsView ai, string name, string model)
+    private static void Fill(AiSettingsView ai, string name, string model, string endpoint)
     {
         ((TextBox)ai.FindName("NameInput")).Text = name;
-        ((TextBox)ai.FindName("EndpointInput")).Text = "https://api.example.com/v1";
+        ((TextBox)ai.FindName("EndpointInput")).Text = endpoint;
         ((PasswordBox)ai.FindName("KeyInput")).Password = "test-secret-only";
         ((TextBox)ai.FindName("ModelInput")).Text = model;
     }

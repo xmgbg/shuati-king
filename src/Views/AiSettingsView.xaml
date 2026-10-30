@@ -21,7 +21,7 @@
    <TextBox x:Name="NameInput" MaxLength="20" TextChanged="ConfigurationEdited" AutomationProperties.Name="配置名称"/>
    <Label Content="服务地址" Target="{Binding ElementName=EndpointInput}" Style="{StaticResource FieldLabel}" Margin="0,16,0,0"/>
    <TextBox x:Name="EndpointInput" TextChanged="ConfigurationEdited" AutomationProperties.Name="AI 服务地址"/>
-   <TextBlock Text="填写服务提供方给出的 API 基础地址，例如 https://api.example.com/v1" Style="{StaticResource MutedText}" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"/>
+   <TextBlock Text="填写服务方的 API 基础地址（如 https://api.xiaomimimo.com/v1），也支持完整的 /chat/completions 地址" Style="{StaticResource MutedText}" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"/>
    <Grid Margin="0,16,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="20"/><ColumnDefinition/></Grid.ColumnDefinitions>
     <StackPanel><Label Content="API 密钥" Target="{Binding ElementName=KeyInput}" Style="{StaticResource FieldLabel}"/><PasswordBox x:Name="KeyInput" PasswordChanged="ConfigurationEdited" AutomationProperties.Name="API 密钥"/></StackPanel>
     <StackPanel Grid.Column="2"><Label Content="模型名称" Target="{Binding ElementName=ModelInput}" Style="{StaticResource FieldLabel}"/><TextBox x:Name="ModelInput" TextChanged="ConfigurationEdited" AutomationProperties.Name="模型名称"/></StackPanel>
@@ -32,15 +32,9 @@
   <TextBlock x:Name="ConfigurationFeedback" TextWrapping="Wrap" FontSize="14" Margin="0,12,0,0" AutomationProperties.LiveSetting="Polite"/>
   <Border x:Name="RestartNotice" Background="{DynamicResource WarningTintBrush}" Padding="14" CornerRadius="6" Margin="0,12,0,0" Visibility="Collapsed"><TextBlock Text="模型已更换，请重启应用后使用新模型。你可以稍后手动重启。" Foreground="{DynamicResource WarningBrush}" TextWrapping="Wrap" FontSize="14"/></Border>
   <Border Height="1" Background="{DynamicResource LineBrush}" Margin="0,22,0,18"/>
-  <TextBlock Text="连接状态预览" FontWeight="SemiBold"/>
-  <TextBlock Text="本轮仅演示界面，不发送请求、不产生费用。后续实际检查将发起最小模型调用，可能产生费用。" Style="{StaticResource MutedText}" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,14"/>
-  <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-   <ComboBox x:Name="PreviewResult" SelectedIndex="0" AutomationProperties.Name="选择演示连接结果" SelectionChanged="PreviewResultChanged">
-    <ComboBoxItem Content="演示：连接成功" Tag="200"/><ComboBoxItem Content="演示：401 鉴权失败" Tag="401"/><ComboBoxItem Content="演示：404 地址或模型不存在" Tag="404"/><ComboBoxItem Content="演示：429 请求受限" Tag="429"/><ComboBoxItem Content="演示：500 服务错误" Tag="500"/><ComboBoxItem Content="演示：本地超时" Tag="LOCAL_TIMEOUT"/><ComboBoxItem Content="演示：本地网络异常" Tag="LOCAL_NETWORK_ERROR"/>
-   </ComboBox>
-   <Button Grid.Column="2" x:Name="CheckButton" Content="检查连接（演示）" Click="CheckConnection" IsEnabled="False" Padding="14,10"/>
-  </Grid>
-  <TextBlock x:Name="CheckHint" Text="填完有效的服务地址、密钥和模型后可预览连接状态。" Style="{StaticResource MutedText}" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,0"/>
+  <TextBlock Text="检查连接" FontWeight="SemiBold"/>
+  <TextBlock Text="检查当前正在编辑的配置，将发送一次简短模型请求，可能产生少量调用费用。" Style="{StaticResource MutedText}" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,14"/>
+  <Button x:Name="CheckButton" Content="检查连接" Click="CheckConnection" IsEnabled="False" Padding="14,10" HorizontalAlignment="Left"/>
   <Border x:Name="ConnectionResult" Background="{DynamicResource TintBrush}" CornerRadius="6" Padding="14" Margin="0,14,0,0" Visibility="Collapsed"><StackPanel><ProgressBar x:Name="CheckingProgress" Height="3" IsIndeterminate="True" Visibility="Collapsed" Foreground="{DynamicResource AccentBrush}" Margin="0,0,0,12"/><TextBlock x:Name="ConnectionFeedback" TextWrapping="Wrap" FontSize="14" LineHeight="24" AutomationProperties.LiveSetting="Polite"/></StackPanel></Border>
  </StackPanel>
 </UserControl>

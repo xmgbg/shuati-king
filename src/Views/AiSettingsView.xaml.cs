@@ -14,6 +14,8 @@ public partial class AiSettingsView : UserControl
     private readonly ObservableCollection<AiConfiguration> drafts;
     private bool loading = true;
     private bool checking;
+    private readonly AiConnectionService connection = new();
+    private CancellationTokenSource? checkCancellation;
     private AiConfiguration Selected => (AiConfiguration)ConfigurationTabs.SelectedItem;
 
     public AiSettingsView(LocalSettings settings, SettingsStore store, string runningModel)
@@ -27,6 +29,7 @@ public partial class AiSettingsView : UserControl
         ConfigurationTabs.SelectedIndex = Math.Max(0, drafts.ToList().FindIndex(c => c.Id == settings.SelectedConfigurationId));
         loading = false;
         LoadSelected();
+        Unloaded += (_, _) => checkCancellation?.Cancel();
     }
 
     private void ConfigurationSelected(object sender, SelectionChangedEventArgs e)
@@ -61,8 +64,8 @@ public partial class AiSettingsView : UserControl
     private string? ValidationError()
     {
         if (string.IsNullOrWhiteSpace(NameInput.Text)) return "请填写配置名称，便于区分三套配置。";
-        if (!Uri.TryCreate(EndpointInput.Text.Trim(), UriKind.Absolute, out var uri) || (uri.Scheme != "https" && uri.Scheme != "http") || string.IsNullOrWhiteSpace(uri.Host) || !string.IsNullOrEmpty(uri.UserInfo))
-            return "请填写有效的 http:// 或 https:// 服务地址；密钥应填在专用密钥栏。";
+        try { AiConnectionService.CompletionUri(EndpointInput.Text); }
+        catch (ArgumentException error) { return error.Message; }
         if (string.IsNullOrWhiteSpace(KeyInput.Password)) return "请填写 API 密钥。";
         if (string.IsNullOrWhiteSpace(ModelInput.Text)) return "请填写模型名称。";
         return null;
@@ -126,29 +129,37 @@ public partial class AiSettingsView : UserControl
         UseConfigurationButton.IsEnabled = Selected.Id != current.Id;
     }
 
-    private void PreviewResultChanged(object sender, SelectionChangedEventArgs e)
-    { if (!loading) ResetConnection(); }
+    private async void CheckConnection(object sender, RoutedEventArgs e) => await CheckConnectionAsync();
 
-    private async void CheckConnection(object sender, RoutedEventArgs e) => await PreviewConnectionAsync();
-
-    public async Task PreviewConnectionAsync()
+    public async Task CheckConnectionAsync()
     {
         if (checking) return;
         if (ValidationError() is { } error) { ConfigurationFeedback.Text = error; return; }
-        var code = ((ComboBoxItem)PreviewResult.SelectedItem).Tag.ToString()!;
+        var configuration = Selected.Copy();
         checking = true;
-        Editor.IsEnabled = ConfigurationTabs.IsEnabled = PreviewResult.IsEnabled = AddButton.IsEnabled = CheckButton.IsEnabled = false;
+        using var cancellation = new CancellationTokenSource();
+        checkCancellation = cancellation;
+        Editor.IsEnabled = ConfigurationTabs.IsEnabled = AddButton.IsEnabled = CheckButton.IsEnabled = false;
         ConnectionResult.Visibility = CheckingProgress.Visibility = Visibility.Visible;
         ConnectionFeedback.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
-        ConnectionFeedback.Text = $"演示 · 正在检查 {ModelInput.Text.Trim()}…";
+        ConnectionFeedback.Text = "正在检查模型连接…";
         CheckButton.Content = "正在检查…";
-        await Task.Delay(1100);
-        ConnectionFeedback.Text = ConnectionPreview.Message(code);
-        ConnectionFeedback.SetResourceReference(TextBlock.ForegroundProperty, code == "200" ? "SuccessBrush" : "ErrorBrush");
-        CheckingProgress.Visibility = Visibility.Collapsed;
-        checking = false;
-        Editor.IsEnabled = ConfigurationTabs.IsEnabled = PreviewResult.IsEnabled = CheckButton.IsEnabled = true;
-        CheckButton.Content = "检查连接（演示）";
-        UpdateSummary();
+        try
+        {
+            var result = await connection.CheckAsync(configuration, cancellation.Token);
+            ConnectionFeedback.Text = result.Message;
+            ConnectionFeedback.SetResourceReference(TextBlock.ForegroundProperty, result.Success ? "SuccessBrush" : "ErrorBrush");
+        }
+        catch (OperationCanceledException) { ConnectionResult.Visibility = Visibility.Collapsed; }
+        finally
+        {
+            checkCancellation = null;
+            CheckingProgress.Visibility = Visibility.Collapsed;
+            checking = false;
+            Editor.IsEnabled = ConfigurationTabs.IsEnabled = true;
+            CheckButton.IsEnabled = ValidationError() is null;
+            CheckButton.Content = "检查连接";
+            UpdateSummary();
+        }
     }
 }
