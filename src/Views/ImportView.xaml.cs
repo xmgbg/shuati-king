@@ -17,6 +17,11 @@ public partial class ImportView : UserControl
     private bool generating;
     private bool recognized;
     private string? fileName;
+    private bool reading;
+    private bool selectingLocation;
+    private SourceDocument? fileDocument;
+    private SourceDocument? pasteDocument;
+    public SourceDocument? Document { get; private set; }
     public SampleLibrary? CurrentLibrary { get; private set; }
     public int CurrentStep => step;
 
@@ -30,49 +35,114 @@ public partial class ImportView : UserControl
     private void SourceKindChanged(object sender, RoutedEventArgs e)
     {
         if (initializing) return;
-        FileControls.Visibility = FileMode.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        InputLabel.Text = FileMode.IsChecked == true ? "示例内容（非文件提取结果）" : "粘贴资料文字";
+        if (!SourceInput.IsReadOnly) CapturePaste();
+        var isFile = FileMode.IsChecked == true;
+        Document = isFile ? fileDocument : pasteDocument;
+        SourceInput.IsReadOnly = isFile;
+        SourceInput.Text = Document?.Text ?? "";
+        FileControls.Visibility = isFile ? Visibility.Visible : Visibility.Collapsed;
+        InputLabel.Text = isFile ? "提取文字" : "粘贴资料文字";
+        ReadStatus.Text = "";
+        FormFeedback.Text = "";
     }
 
-    private void ChooseFile(object sender, RoutedEventArgs e)
+    private void CapturePaste()
+    {
+        if (pasteDocument?.Text != SourceInput.Text) pasteDocument = DocumentReader.FromText(SourceInput.Text);
+    }
+
+    private async void ChooseFile(object sender, RoutedEventArgs e)
     {
         var picker = new OpenFileDialog { Title = "选择资料", Filter = "文字型 PDF 或 Word|*.pdf;*.docx" };
-        if (picker.ShowDialog() != true) return;
-        if (CurrentLibrary?.Count > 0)
-        {
-            CurrentLibrary = null; recognized = false;
-            ResultPanel.Visibility = Visibility.Collapsed;
-        }
-        fileName = Path.GetFileName(picker.FileName); SelectedFile.Text = fileName;
-        LibraryNameInput.Text = Path.GetFileNameWithoutExtension(fileName); SourceInput.Clear();
-        FormFeedback.Text = "文件已选择；本轮尚未解析，请载入示例内容后预览。";
+        if (picker.ShowDialog() == true) await LoadFileAsync(picker.FileName);
     }
 
-    private void LoadExample(object sender, RoutedEventArgs e)
+    public async Task LoadFileAsync(string path)
     {
-        if (string.IsNullOrWhiteSpace(LibraryNameInput.Text)) LibraryNameInput.Text = "计算机网络复习";
-        SourceInput.Text = ExistingMode.IsChecked == true
-            ? "1. OSI 模型中负责路由选择的是哪一层？\nA. 物理层\nB. 网络层\nC. 会话层\nD. 表示层\n答案：B\n\n2. 以下哪些属于传输层协议？\nA. TCP\nB. IP\nC. UDP\nD. ARP\n答案：AC\n\n3. TCP 提供面向连接的服务。（判断题，答案待补充）\n\n4. TCP 的中文名称是 ____，UDP 的中文名称是 ____。\n\n待整理原文：请人工核对课程笔记中的补充说明。"
-            : "OSI 参考模型分为七层。网络层负责路由选择与分组转发。TCP 是面向连接的传输层协议，中文名称为传输控制协议。UDP 是无连接的传输层协议，中文名称为用户数据报协议。资料中的术语可在下一步修改后再确认。";
-        FormFeedback.Text = "示例内容已载入，可继续预览并修改。";
+        if (reading || generating) return;
+        FileMode.IsChecked = true;
+        reading = true;
+        SourcePage.IsEnabled = BackButton.IsEnabled = NextButton.IsEnabled = false;
+        ReadProgress.Visibility = Visibility.Visible;
+        ReadStatus.Text = "正在读取资料…"; FormFeedback.Text = "";
+        try
+        {
+            var document = await Task.Run(() => DocumentReader.Read(path));
+            fileDocument = Document = document;
+            fileName = document.Name; SelectedFile.Text = fileName;
+            LibraryNameInput.Text = Path.GetFileNameWithoutExtension(fileName);
+            SourceInput.Text = document.Text;
+            CurrentLibrary = null; recognized = false;
+            ResultPanel.Visibility = Visibility.Collapsed;
+            ReadStatus.Text = $"已读取 {document.Sections.Count} 个来源位置 · {document.Text.Length} 字符";
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or NotSupportedException
+            or System.Xml.XmlException or UglyToad.PdfPig.Core.PdfDocumentFormatException
+            or UglyToad.PdfPig.Exceptions.PdfDocumentEncryptedException)
+        {
+            ReadStatus.Text = "读取失败";
+            FormFeedback.Text = error is IOException or UnauthorizedAccessException or InvalidDataException or NotSupportedException
+                ? error.Message : "无法读取此文件，请检查文件是否损坏、加密，或另存后重试。";
+        }
+        finally
+        {
+            reading = false; SourcePage.IsEnabled = BackButton.IsEnabled = true;
+            ReadProgress.Visibility = Visibility.Collapsed; UpdatePage();
+        }
+    }
+
+    private void ShowDocument()
+    {
+        selectingLocation = true;
+        SourceLocations.ItemsSource = Document!.Sections;
+        selectingLocation = false;
+        SourceLocations.SelectedIndex = 0;
+        ShowLocation();
+        DocumentSummary.ToolTip = Document.FilePath;
+        DocumentSummary.Text = $"{Document.Name} · {Document.Sections.Count} 个来源位置";
+        PreviewNote.Text = Document.Notice;
+    }
+
+    private void LocationChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!initializing && !selectingLocation) ShowLocation();
+    }
+
+    private void ShowLocation()
+    {
+        selectingLocation = true;
+        var section = SourceLocations.SelectedItem as SourceSection;
+        PreviewInput.Text = section?.Text ?? "";
+        OriginalInput.Text = section?.OriginalText ?? "";
+        LocationTitle.Text = section?.Location ?? "";
+        selectingLocation = false;
+    }
+
+    private void PreviewChanged(object sender, TextChangedEventArgs e)
+    {
+        if (initializing || selectingLocation) return;
+        if (SourceLocations.SelectedItem is SourceSection section) section.Text = PreviewInput.Text;
     }
 
     private void Next(object sender, RoutedEventArgs e)
     {
-        if (generating) return;
+        if (generating || reading) return;
         FormFeedback.Text = "";
         if (step == 0)
         {
             if (string.IsNullOrWhiteSpace(LibraryNameInput.Text)) { FormFeedback.Text = "请填写题库名称。"; LibraryNameInput.Focus(); return; }
             if (FileMode.IsChecked == true && fileName is null) { FormFeedback.Text = "请先选择文件，或切换为粘贴文字。"; return; }
-            if (string.IsNullOrWhiteSpace(SourceInput.Text)) { FormFeedback.Text = "请粘贴文字，或载入示例内容。"; SourceInput.Focus(); return; }
-            PreviewInput.Text = SourceInput.Text; step = 1;
+            if (FileMode.IsChecked != true && string.IsNullOrWhiteSpace(SourceInput.Text)) { FormFeedback.Text = "请粘贴文字，或选择可读取的文件。"; SourceInput.Focus(); return; }
+            if (FileMode.IsChecked != true) { CapturePaste(); Document = pasteDocument; }
+            else Document = fileDocument;
+            ShowDocument(); step = 1;
         }
         else if (step == 1)
         {
-            if (string.IsNullOrWhiteSpace(PreviewInput.Text)) { FormFeedback.Text = "预览内容不能为空，请补充文字。"; return; }
-            SourceInput.Text = PreviewInput.Text;
-            CurrentLibrary?.UpdateSource(LibraryNameInput.Text.Trim(), FileMode.IsChecked == true ? fileName! : "粘贴文字", PreviewInput.Text);
+            if (Document?.HasText != true) { FormFeedback.Text = "预览内容不能为空，请补充文字。"; return; }
+            SourceInput.Text = Document!.Text;
+            CurrentLibrary?.UpdateSource(LibraryNameInput.Text.Trim(), FileMode.IsChecked == true ? fileName! : "粘贴文字", Document!.Text);
+            if (CurrentLibrary is not null) CurrentLibrary.SourceDocument = Document;
             step = 2;
         }
         else if (CurrentLibrary?.Count > 0) { review(CurrentLibrary); return; }
@@ -81,9 +151,9 @@ public partial class ImportView : UserControl
 
     private void Back(object sender, RoutedEventArgs e)
     {
-        if (generating) return;
+        if (generating || reading) return;
         if (step == 0) { exit(); return; }
-        if (step == 1) SourceInput.Text = PreviewInput.Text;
+        if (step == 1) SourceInput.Text = Document!.Text;
         step--; FormFeedback.Text = ""; UpdatePage();
     }
 
@@ -97,15 +167,15 @@ public partial class ImportView : UserControl
         foreach (var (label, index) in new[] { (StepSource, 0), (StepPreview, 1), (StepGenerate, 2) })
         { label.SetResourceReference(TextBlock.ForegroundProperty, index == step ? "AccentBrush" : "MutedBrush"); label.FontWeight = index == step ? FontWeights.SemiBold : FontWeights.Normal; }
         PathHint.Text = existing ? "保留原文，先预览检查，再进入现成题目整理与审核。" : "先检查资料文字，再选择题型和数量生成题目。";
-        RouteSummary.Text = existing ? "现成题目 → 预览文字 → 离线识别 → 修正与审核" : "知识资料 → 预览文字 → 生成草稿 → 审核入库";
-        PreviewNote.Text = existing ? "请检查题干、选项与答案；无法识别的原文会保留供人工修正。" : "请检查提取内容和术语。本轮文件内容为示例，粘贴的文字会原样保留。";
+        RouteSummary.Text = existing ? "现成题目 → 预览文字 → AI 识别 → 修正与审核" : "知识资料 → 预览文字 → 生成草稿 → 审核入库";
+
         KnowledgeSettings.Visibility = existing ? Visibility.Collapsed : Visibility.Visible;
         GenerateTitle.Text = existing ? "整理现成题目" : "选择题型与数量";
         GenerateDescription.Text = existing ? "本轮演示离线识别，不调用 AI。示例结果含四种题型和一题缺答案，原文会保留在审核页。" : "本轮不读取密钥、不调用 AI。正式出题需在“我的”中配置服务，生成后先审核再入库。";
         GenerateButton.Content = existing ? "识别现成题目（演示）" : CurrentLibrary?.Count > 0 ? "补充生成缺少题目（演示）" : "生成草稿（演示）";
         BackButton.Content = step == 0 ? "返回题库" : "‹  上一步";
         NextButton.Content = step == 0 ? "预览内容  ›" : step == 1 ? existing ? "确认内容，整理题目  ›" : "确认内容，设置出题  ›" : "查看并审核草稿  ›";
-        NextButton.IsEnabled = !generating && (step != 2 || CurrentLibrary?.Count > 0);
+        NextButton.IsEnabled = !generating && !reading && (step != 2 || CurrentLibrary?.Count > 0);
         PreservedDraftHint.Text = CurrentLibrary?.Count > 0 ? $"已保留 {CurrentLibrary.Count} 道草稿；返回修改不会清空题目。" : "";
     }
 
@@ -125,7 +195,8 @@ public partial class ImportView : UserControl
             if (targets.Sum() == 0) { FormFeedback.Text = "请至少设置一道题。"; return; }
         }
         CurrentLibrary ??= new SampleLibrary(LibraryNameInput.Text.Trim(), FileMode.IsChecked == true ? fileName! : "粘贴文字");
-        CurrentLibrary.UpdateSource(LibraryNameInput.Text.Trim(), FileMode.IsChecked == true ? fileName! : "粘贴文字", PreviewInput.Text);
+        CurrentLibrary.UpdateSource(LibraryNameInput.Text.Trim(), FileMode.IsChecked == true ? fileName! : "粘贴文字", Document!.Text);
+        CurrentLibrary.SourceDocument = Document;
         var scenario = existing ? "success" : ((ComboBoxItem)GenerationScenario.SelectedItem).Tag.ToString();
         generating = true; FormFeedback.Text = "";
         SourcePage.IsEnabled = KnowledgeSettings.IsEnabled = GenerateButton.IsEnabled = BackButton.IsEnabled = NextButton.IsEnabled = false;

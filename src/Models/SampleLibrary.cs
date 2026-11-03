@@ -9,6 +9,7 @@ public sealed class SampleLibrary : INotifyPropertyChanged
     public string Name { get; private set; }
     public string Source { get; private set; }
     public string Color { get; }
+    public SourceDocument? SourceDocument { get; set; }
     public string SourceText { get; set; } = "";
     public ObservableCollection<QuestionDraft> Questions { get; } = [];
     public int Single => Questions.Count(q => q.Type == QuestionType.Single);

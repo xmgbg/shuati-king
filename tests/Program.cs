@@ -146,6 +146,7 @@ internal static class Program
         Check(profileScroll.VerticalOffset > 0, "小窗口可滚动至下方连接结果");
         Capture(window, "profile-compact-bottom");
         ((RadioButton)profile.FindName("LightTheme")).IsChecked = true;
+        DocumentReadingChecks.Run(window);
         ImportChecks.Run(window);
         ReviewChecks.Run(window);
         WorkflowChecks.Run(window);
