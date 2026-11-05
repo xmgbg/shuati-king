@@ -21,6 +21,7 @@ public partial class ImportView : UserControl
     private bool selectingLocation;
     private SourceDocument? fileDocument;
     private SourceDocument? pasteDocument;
+    public MaterialPlan? Plan { get; private set; }
     public SourceDocument? Document { get; private set; }
     public SampleLibrary? CurrentLibrary { get; private set; }
     public int CurrentStep => step;
@@ -143,6 +144,7 @@ public partial class ImportView : UserControl
             SourceInput.Text = Document!.Text;
             CurrentLibrary?.UpdateSource(LibraryNameInput.Text.Trim(), FileMode.IsChecked == true ? fileName! : "粘贴文字", Document!.Text);
             if (CurrentLibrary is not null) CurrentLibrary.SourceDocument = Document;
+            Plan = MaterialPlanner.Create(Document!, ExistingMode.IsChecked == true, [0, 0, 0, 0]);
             step = 2;
         }
         else if (CurrentLibrary?.Count > 0) { review(CurrentLibrary); return; }
@@ -194,6 +196,7 @@ public partial class ImportView : UserControl
                 { FormFeedback.Text = "请将每种题型的演示数量填写为 0–100 的整数。"; inputs[i].Focus(); return; }
             if (targets.Sum() == 0) { FormFeedback.Text = "请至少设置一道题。"; return; }
         }
+        Plan = MaterialPlanner.Create(Document!, existing, targets);
         CurrentLibrary ??= new SampleLibrary(LibraryNameInput.Text.Trim(), FileMode.IsChecked == true ? fileName! : "粘贴文字");
         CurrentLibrary.UpdateSource(LibraryNameInput.Text.Trim(), FileMode.IsChecked == true ? fileName! : "粘贴文字", Document!.Text);
         CurrentLibrary.SourceDocument = Document;

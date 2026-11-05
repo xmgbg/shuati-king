@@ -46,6 +46,7 @@ internal static class Program
         if (args.Contains("--preview-history")) { InteractivePreview.Run(); return; }
         AiConnectionChecks.Run();
         using var connectionServer = new AiTestServer();
+        MaterialPlannerChecks.Run();
         QuestionChecks.Run();
         LearningChecks.Models();
         ExamHistoryChecks.Models();
