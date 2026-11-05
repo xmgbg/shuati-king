@@ -23,6 +23,8 @@ public partial class ReviewView : UserControl
         ReturnButton.Visibility = fromImport ? Visibility.Visible : Visibility.Collapsed;
         LibraryCaption.Text = library.Name + " · " + library.Source;
         OriginalText.Text = string.IsNullOrEmpty(library.SourceText) ? "当前题库为示例数据，没有原始文档。" : library.SourceText;
+        ProcessingReport.Text = string.Join("\n\n", library.ImportIssues.Select(issue => issue.Location + " · " + issue.Reason + "\n" + issue.OriginalText));
+        ProcessingReportPanel.Visibility = library.ImportIssues.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         QuestionPreview.FontSize = questionFontSize;
         loading = false; RefreshList();
     }
@@ -59,6 +61,11 @@ public partial class ReviewView : UserControl
     private void LoadQuestion(QuestionDraft? question)
     {
         loading = true; CurrentQuestion = question; EditorRoot.IsEnabled = question is not null;
+        SourceEvidenceText.Text = question is null ? "" : question.SourceEvidence +
+            (question.OriginalAnswer.Length > 0 ? "\n\n原答案：" + question.OriginalAnswer + "\n" + question.AnswerEvidence : "");
+        SourceEvidencePanel.Visibility = string.IsNullOrWhiteSpace(SourceEvidenceText.Text) ? Visibility.Collapsed : Visibility.Visible;
+        AnswerDoubt.Text = question is null ? "" : string.Join("\n", new[] { question.AiDoubt, question.AiSuggestion }.Where(text => text.Length > 0));
+        AnswerDoubt.Visibility = string.IsNullOrWhiteSpace(AnswerDoubt.Text) ? Visibility.Collapsed : Visibility.Visible;
         StemInput.Text = question?.Stem ?? ""; ExplanationInput.Text = question?.Explanation ?? "";
         QuestionTypeInput.SelectedIndex = (int)(question?.Type ?? QuestionType.Single);
         TrueAnswer.IsChecked = question?.JudgmentAnswer == true;

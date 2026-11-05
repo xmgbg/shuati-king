@@ -88,7 +88,7 @@ public partial class MainWindow : Window
     {
         if (action == "导入资料")
         {
-            importView ??= new ImportView(ShowReview, library.AddLibrary, ShowLibrary);
+            importView ??= new ImportView(ShowReview, library.AddLibrary, ShowLibrary, ImportConfiguration);
             PageHost.Content = importView;
         }
         else if (action == "导入题库")
@@ -101,6 +101,14 @@ public partial class MainWindow : Window
         else if (action == "继续练习") { ShowPractice(); practiceView!.ContinuePractice(); }
         else if (action == "题目管理" && selected is not null) ShowReview(selected);
         else ShowPlaceholder(action);
+    }
+
+    private AiConfiguration? ImportConfiguration()
+    {
+        var selected = settings.Configurations.FirstOrDefault(config => config.Id == settings.SelectedConfigurationId);
+        if (selected is null || string.IsNullOrWhiteSpace(selected.ApiKey) || string.IsNullOrWhiteSpace(selected.Model)) return null;
+        if (selected.Model.Trim() != runningModel) throw new InvalidOperationException("模型已变更，请重启应用后开始识别。");
+        return selected.Copy();
     }
 
     private void ShowLibrary() { library.UpdateProgress(learning.Practice); PageHost.Content = library; LibraryTab.IsChecked = true; }

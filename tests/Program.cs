@@ -47,6 +47,7 @@ internal static class Program
         AiConnectionChecks.Run();
         using var connectionServer = new AiTestServer();
         MaterialPlannerChecks.Run();
+        QuestionImportChecks.Run();
         QuestionChecks.Run();
         LearningChecks.Models();
         ExamHistoryChecks.Models();
@@ -149,6 +150,7 @@ internal static class Program
         ((RadioButton)profile.FindName("LightTheme")).IsChecked = true;
         DocumentReadingChecks.Run(window);
         ImportChecks.Run(window);
+        QuestionImportChecks.Views(window);
         ReviewChecks.Run(window);
         WorkflowChecks.Run(window);
         PracticeChecks.Run(window);

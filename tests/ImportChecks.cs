@@ -36,18 +36,7 @@ internal static class ImportChecks
         Program.Capture(window, "import-generated-light");
         Click(import, "BackButton");
         Program.Check(import.CurrentLibrary!.Count == 10, "返回修正仍保留全部草稿");
-        var existing = new ImportView(_ => { }, _ => { }, () => { });
-        host.Content = existing; window.UpdateLayout();
-        ((RadioButton)existing.FindName("ExistingMode")).IsChecked = true;
-        ((TextBox)existing.FindName("LibraryNameInput")).Text = "现成题目";
-        ((TextBox)existing.FindName("SourceInput")).Text = "无法识别的原文也要保留";
-        Program.Capture(window, "import-source-light");
-        Click(existing, "NextButton"); Click(existing, "NextButton");
-        Complete(existing.GenerateAsync(), window.Dispatcher);
-        Program.Check(existing.CurrentLibrary!.Count == 4 && existing.CurrentLibrary.IncompleteCount == 1, "现成题目路径包含四题型及缺答案草稿");
-        Program.Check(existing.CurrentLibrary.SourceText.Contains("无法识别"), "无法识别的原文不丢失");
-        Complete(existing.GenerateAsync(), window.Dispatcher);
-        Program.Check(existing.CurrentLibrary.Count == 4, "重复识别不重复添加示例题目");
+
     }
 
     private static void Click(FrameworkElement parent, string name) => ((Button)parent.FindName(name)).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));

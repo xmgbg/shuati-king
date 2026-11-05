@@ -15,6 +15,13 @@ public sealed class QuestionDraft : INotifyPropertyChanged
     public List<int> CorrectOptions { get; set; } = [];
     public bool? JudgmentAnswer { get; set; }
     public List<List<string>> BlankAnswers { get; set; } = [];
+    public string SourceNumber { get; set; } = "";
+    public string SourceScope { get; set; } = "";
+    public string SourceEvidence { get; set; } = "";
+    public string OriginalAnswer { get; set; } = "";
+    public string AnswerEvidence { get; set; } = "";
+    public string AiDoubt { get; set; } = "";
+    public string AiSuggestion { get; set; } = "";
     public string Explanation { get; set; } = "";
     public bool IsConfirmed { get; set; }
     public bool BatchSelected { get; set; }
