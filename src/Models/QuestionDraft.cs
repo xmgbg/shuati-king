@@ -35,6 +35,10 @@ public sealed class QuestionDraft : INotifyPropertyChanged
         get
         {
             if (!Enum.IsDefined(Type)) return "不支持的题型。";
+            var choice = Type is QuestionType.Single or QuestionType.Multiple;
+            if (!choice && (Options.Count > 0 || CorrectOptions.Count > 0)) return "当前题型不能包含选择题选项或答案。";
+            if (Type != QuestionType.Judgment && JudgmentAnswer is not null) return "当前题型不能包含判断题答案。";
+            if (Type != QuestionType.Blank && BlankAnswers.Count > 0) return "当前题型不能包含填空题答案。";
             if (Options.Count > 26) return "选项不能超过 26 个。";
             if (string.IsNullOrWhiteSpace(Stem)) return "请补充题干。";
             if (Type is QuestionType.Single or QuestionType.Multiple)

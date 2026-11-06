@@ -153,6 +153,7 @@ internal static class Program
         ImportChecks.Run(window);
         QuestionImportChecks.Views(window);
         ReviewChecks.Run(window);
+        QuestionAcceptanceChecks.Run(window);
         WorkflowChecks.Run(window);
         PracticeChecks.Run(window);
         PracticeLayoutChecks.Run(window);

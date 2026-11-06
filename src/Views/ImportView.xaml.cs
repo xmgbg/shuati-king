@@ -181,7 +181,9 @@ public partial class ImportView : UserControl
         KnowledgeSettings.Visibility = existing ? Visibility.Collapsed : Visibility.Visible;
         GenerateTitle.Text = existing ? "整理现成题目" : "选择题型与数量";
         GenerateDescription.Text = existing ? "使用当前 AI 配置识别题目，按批次发送资料。原答案保留，缺答案题目待补全。" : "根据资料生成题目与解析，生成结果先进入待审核草稿。";
-        GenerateButton.Content = existing ? importSession is { Complete: true } ? "识别已完成" : importSession is { CompletedBatches: > 0 } ? "继续识别" : "识别题目" : CurrentLibrary?.Count > 0 ? "补充生成缺少题目" : "生成草稿";
+        var requested = new[] { SingleCount, MultipleCount, JudgmentCount, BlankCount }.Select(input => int.TryParse(input.Text, out var value) ? value : -1).ToArray();
+        var generationComplete = CurrentLibrary is not null && requested.All(value => value >= 0) && requested.Select((value, type) => value <= CurrentLibrary.Questions.Count(q => (int)q.Type == type)).All(done => done);
+        GenerateButton.Content = existing ? importSession is { Complete: true } ? "识别已完成" : importSession is { CompletedBatches: > 0 } ? "继续识别" : "识别题目" : generationComplete ? "生成已完成" : CurrentLibrary?.Count > 0 ? "补充生成缺少题目" : "生成草稿";
         TaskPlanSummary.Text = Plan is null ? "" : $"资料已分为 {Plan.Batches.Length} 批";
         FlowNotice.Visibility = Visibility.Collapsed;
         FlowNotice.Text = existing ? "识别完成后先审核，确认后可用于练习。" : "知识资料出题暂为示例结果。";
@@ -201,6 +203,8 @@ public partial class ImportView : UserControl
         if (existing) { await RecognizeExistingAsync(); return; }
         await RecognizeExistingAsync();
     }
+    private void TargetsChanged(object sender, TextChangedEventArgs e) { if (!initializing && !generating) UpdatePage(); }
+
     private void CancelImport(object sender, RoutedEventArgs e) => importCancellation?.Cancel();
 
     private async Task RecognizeExistingAsync()
@@ -232,7 +236,7 @@ public partial class ImportView : UserControl
             var missing = targets.Select((target, type) => Math.Max(0, target - (CurrentLibrary?.Questions.Count(q => (int)q.Type == type) ?? 0))).ToArray();
             // 用户再次点击才补充，已确认的整份目标题量仍保留，补充请求只分配缺口。
             Plan = MaterialPlanner.ForGeneration(MaterialPlanner.Create(Document!, false, missing, config)) with { Targets = plan.Targets };
-            importSession = new(Plan);
+            importSession = new(Plan) { InputTokens = importSession.InputTokens, OutputTokens = importSession.OutputTokens, UsageUnknown = importSession.UsageUnknown };
         }
         generating = true; FormFeedback.Text = "";
         SourcePage.IsEnabled = KnowledgeSettings.IsEnabled = GenerateButton.IsEnabled = BackButton.IsEnabled = NextButton.IsEnabled = false;
@@ -271,13 +275,17 @@ public partial class ImportView : UserControl
                     session.Issues.Add(new(candidate.SourceEvidence.Split('\n')[0], "跳过完全重复题", candidate.Stem));
                 else CurrentLibrary.Questions.Add(candidate);
             }
-            CurrentLibrary.ImportIssues.Clear(); CurrentLibrary.ImportIssues.AddRange(session.Issues);
+            session.Issues.AddRange(QuestionRules.RemoveDuplicateDrafts(CurrentLibrary, session.Questions.Select(question => question.Id)));
+            foreach (var issue in session.Issues)
+                if (!CurrentLibrary.ImportIssues.Contains(issue)) CurrentLibrary.ImportIssues.Add(issue);
             CurrentLibrary.NotifyChanged(); draftsChanged(CurrentLibrary);
         }
-        ActualCounts.Text = $"草稿 {CurrentLibrary?.Count ?? 0} 道 · 待补全 {CurrentLibrary?.IncompleteCount ?? 0} 道\n输入 {session.InputTokens} / 输出 {session.OutputTokens} Token" +
+        var shortfall = session.Plan.ExistingQuestions ? "" : " · 仍缺 " + session.Plan.Targets.Select((target, type) => Math.Max(0, target - (CurrentLibrary?.Questions.Count(q => (int)q.Type == type) ?? 0))).Sum() + " 道";
+        ActualCounts.Text = $"草稿 {CurrentLibrary?.Count ?? 0} 道 · 待补全 {CurrentLibrary?.IncompleteCount ?? 0} 道{shortfall}\n输入 {session.InputTokens} / 输出 {session.OutputTokens} Token" +
             (session.UsageUnknown ? "（另有未确认用量）" : "");
-        ImportReport.Text = string.Join("\n\n", session.Issues.Select(issue => issue.Location + " · " + issue.Reason + "\n" + issue.OriginalText));
-        ImportReportPanel.Visibility = session.Issues.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        var report = CurrentLibrary?.ImportIssues ?? session.Issues;
+        ImportReport.Text = string.Join("\n\n", report.Select(issue => issue.Location + " · " + issue.Reason + "\n" + issue.OriginalText));
+        ImportReportPanel.Visibility = report.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
 }

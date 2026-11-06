@@ -35,6 +35,11 @@ internal static class ImportChecks
         fixture.Server.Status = 200; fixture.Partial = false;
         Complete(import.GenerateAsync(), window.Dispatcher);
         Program.Check(saved.Count == 10 && saved.Single == 4 && saved.Multiple == 2 && saved.Judgment == 2 && saved.Blank == 2, "补充只补足目标题型数量");
+        Program.Check(((TextBlock)import.FindName("ActualCounts")).Text.Contains("输入 1000 / 输出 600") && ((TextBlock)import.FindName("ActualCounts")).Text.Contains("仍缺 0"), "手动补充累计实际 Token，当前缺口单独显示");
+        Program.Check(((Button)import.FindName("GenerateButton")).Content.ToString() == "生成已完成", "题量满足后不误示补充生成");
+        var completedRequests = fixture.Server.RequestCount;
+        Complete(import.GenerateAsync(), window.Dispatcher);
+        Program.Check(fixture.Server.RequestCount == completedRequests, "已满足题量时再次点击不产生额外调用");
         Program.Capture(window, "import-generated-light");
         Click(import, "BackButton");
         Program.Check(import.CurrentLibrary!.Count == 10, "返回修正仍保留全部草稿");

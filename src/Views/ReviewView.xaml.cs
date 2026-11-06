@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using ShuatiKing.Models;
+using ShuatiKing.Services;
 
 namespace ShuatiKing.Views;
 
@@ -153,8 +154,9 @@ public partial class ReviewView : UserControl
     private void UpdateValidation()
     {
         QuestionStatus.Text = CurrentQuestion?.Status ?? "暂无题目";
-        ValidationHint.Text = CurrentQuestion?.ValidationError ?? "";
-        ValidationPanel.Visibility = CurrentQuestion?.ValidationError is null ? Visibility.Collapsed : Visibility.Visible;
+        var error = CurrentQuestion is null ? null : QuestionRules.ConfirmationError(library, CurrentQuestion);
+        ValidationHint.Text = error ?? "";
+        ValidationPanel.Visibility = error is null ? Visibility.Collapsed : Visibility.Visible;
     }
 
     private void SaveQuestion(object sender, RoutedEventArgs e)
@@ -168,7 +170,7 @@ public partial class ReviewView : UserControl
     {
         SaveEditor();
         if (CurrentQuestion is not { } q) return;
-        if (q.ValidationError is { } error) { ReviewFeedback.Text = "无法入库 · " + error; return; }
+        if (QuestionRules.ConfirmationError(library, q) is { } error) { ReviewFeedback.Text = "无法入库 · " + error; return; }
         q.IsConfirmed = true; q.BatchSelected = false; q.NotifyChanged(); library.NotifyChanged();
         ReviewFeedback.Text = "已确认入库，返回题库后可查看最新可用状态。"; RefreshList();
     }
@@ -186,14 +188,15 @@ public partial class ReviewView : UserControl
         SaveEditor();
         var selected = library.Questions.Where(q => q.BatchSelected).ToList();
         if (selected.Count == 0) { ReviewFeedback.Text = "请先勾选需要确认的题目。"; return; }
-        int accepted = 0, rejected = 0;
+        int accepted = 0, rejected = 0, duplicates = 0;
         foreach (var q in selected)
         {
             if (q.ValidationError is not null) { rejected++; continue; }
+            if (QuestionRules.ConfirmationError(library, q) is not null) { duplicates++; continue; }
             q.IsConfirmed = true; q.BatchSelected = false; q.NotifyChanged(); accepted++;
         }
         library.NotifyChanged();
-        ReviewFeedback.Text = $"已确认 {accepted} 道题。" + (rejected > 0 ? $" {rejected} 道题尚未补全，已保留且未入库，可筛选“待补全”继续修正。" : "");
+        ReviewFeedback.Text = $"已确认 {accepted} 道题。" + (rejected > 0 ? $" {rejected} 道题尚未补全，已保留供修正。" : "") + (duplicates > 0 ? $" {duplicates} 道重复题未入库。" : "");
         RefreshList();
     }
 
