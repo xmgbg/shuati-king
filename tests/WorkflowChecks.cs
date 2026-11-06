@@ -2,11 +2,16 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
 using ShuatiKing.Views;
+using ShuatiKing;
+using ShuatiKing.Services;
 
 internal static class WorkflowChecks
 {
-    internal static void Run(Window window)
+    internal static void Run(Window original)
     {
+        using var fixture = new GenerationFixture();
+        var store = new SettingsStore(Program.TestPath("workflow-settings.dat")); fixture.Save(store);
+        var window = new MainWindow(store); window.Show();
         window.Width = 1440; window.Height = 900;
         var tab = (RadioButton)window.FindName("LibraryTab"); tab.IsChecked = false; tab.IsChecked = true;
         var host = (ContentControl)window.FindName("PageHost");
@@ -46,6 +51,7 @@ internal static class WorkflowChecks
         ((Button)window.FindName("ProfileButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         window.UpdateLayout();
         Program.Check(import.CurrentLibrary!.Questions[0].Stem == "离开页面前的草稿修改" && import.CurrentLibrary.ConfirmedCount == 9, "通过顶部导航离开审核也保存草稿并更新入库状态");
+        window.Close();
     }
     private static void Click(FrameworkElement parent, string name) => ((Button)parent.FindName(name)).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 }

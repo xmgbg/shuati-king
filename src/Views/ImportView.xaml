@@ -52,11 +52,11 @@
        <StackPanel Margin="0,0,12,0"><Label Content="判断题" Target="{Binding ElementName=JudgmentCount}" Foreground="{DynamicResource TextBrush}" Padding="0,0,0,8"/><TextBox x:Name="JudgmentCount" Text="2" MaxLength="3" AutomationProperties.Name="判断题数量"/></StackPanel>
        <StackPanel><Label Content="填空题" Target="{Binding ElementName=BlankCount}" Foreground="{DynamicResource TextBrush}" Padding="0,0,0,8"/><TextBox x:Name="BlankCount" Text="2" MaxLength="3" AutomationProperties.Name="填空题数量"/></StackPanel>
       </UniformGrid>
-      <TextBlock Text="数量为 0 时不生成该题型。本次演示每种题型最多 100 道。" Style="{StaticResource MutedText}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,20"/>
-      <TextBlock Text="演示返回状态" Margin="0,0,0,8"/><ComboBox x:Name="GenerationScenario" SelectedIndex="0" AutomationProperties.Name="生成结果演示"><ComboBoxItem Content="全部成功" Tag="success"/><ComboBoxItem Content="仅返回部分题目" Tag="partial"/><ComboBoxItem Content="服务失败 · HTTP 429" Tag="failure"/><ComboBoxItem Content="AI 尚未配置" Tag="unconfigured"/></ComboBox>
+      <TextBlock Text="数量为 0 时不生成该题型。每种题型最多 100 道。" Style="{StaticResource MutedText}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,20"/>
+
      </StackPanel>
      <TextBlock x:Name="TaskPlanSummary" Style="{StaticResource MutedText}" Margin="0,12,0,0"/>
-     <Button x:Name="GenerateButton" Content="生成草稿（演示）" Click="GenerateClick" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Margin="0,22,0,0"/>
+     <Button x:Name="GenerateButton" Content="生成草稿" Click="GenerateClick" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Margin="0,22,0,0"/>
      <Button x:Name="CancelImportButton" Content="暂停识别" Click="CancelImport" Visibility="Collapsed" HorizontalAlignment="Left" Margin="0,12,0,0"/>
      <Expander x:Name="ImportReportPanel" Header="处理报告" Visibility="Collapsed" Foreground="{DynamicResource MutedBrush}" Margin="0,16,0,0"><TextBox x:Name="ImportReport" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" MaxHeight="220" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="未导入与重复题目明细"/></Expander>
      <ProgressBar x:Name="GenerationProgress" Height="5" IsIndeterminate="True" Foreground="{DynamicResource AccentBrush}" Visibility="Collapsed" Margin="0,18,0,0"/>

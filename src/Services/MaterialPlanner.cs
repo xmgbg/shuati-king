@@ -13,6 +13,23 @@ public static class MaterialPlanner
     private static readonly Regex Heading = new(@"^\s*(第[一二三四五六七八九十百零〇0-9]+章|Chapter\s+\d+)", RegexOptions.IgnoreCase);
     private static readonly Regex QuestionStart = new(@"^\s*(?:\d+[.．、)）]|[（(]\d+[)）])\s*");
 
+    public static MaterialPlan ForGeneration(MaterialPlan plan)
+    {
+        var batches = new List<MaterialBatch>();
+        foreach (var batch in plan.Batches)
+        {
+            var left = batch.Targets.ToArray();
+            while (left.Sum() > 0)
+            {
+                var counts = new int[4]; var available = 10;
+                for (var type = 0; type < 4; type++)
+                { counts[type] = Math.Min(left[type], available); left[type] -= counts[type]; available -= counts[type]; }
+                batches.Add(new(batches.Count + 1, batch.Units, counts.ToImmutableArray()));
+            }
+        }
+        return plan with { Batches = batches.ToImmutableArray() };
+    }
+
     public static MaterialPlan Create(SourceDocument source, bool existing, int[] targets, AiConfiguration? configuration = null)
     {
         if (!source.HasText) throw new ArgumentException("资料内容不能为空。");

@@ -34,6 +34,8 @@ public sealed class QuestionDraft : INotifyPropertyChanged
     {
         get
         {
+            if (!Enum.IsDefined(Type)) return "不支持的题型。";
+            if (Options.Count > 26) return "选项不能超过 26 个。";
             if (string.IsNullOrWhiteSpace(Stem)) return "请补充题干。";
             if (Type is QuestionType.Single or QuestionType.Multiple)
             {

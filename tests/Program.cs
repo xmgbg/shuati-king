@@ -48,6 +48,7 @@ internal static class Program
         using var connectionServer = new AiTestServer();
         MaterialPlannerChecks.Run();
         QuestionImportChecks.Run();
+        QuestionGenerationChecks.Run();
         QuestionChecks.Run();
         LearningChecks.Models();
         ExamHistoryChecks.Models();

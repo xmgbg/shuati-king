@@ -14,6 +14,7 @@ internal static class EndToEndChecks
     {
         var settingsPath = Program.TestPath("full-flow.dat");
         var settings = new SettingsStore(settingsPath); var learningStore = new LearningStore(settings.LearningPath);
+        using var fixture = new GenerationFixture(); fixture.Save(settings);
         var window = new MainWindow(settings); window.Show(); window.UpdateLayout();
         var host = (ContentControl)window.FindName("PageHost");
         Navigate(window, "考试记录");

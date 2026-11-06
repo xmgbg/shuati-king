@@ -10,6 +10,7 @@ internal sealed class AiTestServer : IDisposable
     private readonly CancellationTokenSource stop = new();
     private readonly Task worker;
     public string Endpoint { get; }
+    public Func<JsonElement, string>? ReplyFactory { get; set; }
     public int Status { get; set; } = 200;
     public string Body { get; set; } = """{"choices":[{"message":{"role":"assistant","content":"OK"}}]}""";
     public TaskCompletionSource<bool>? ResponseGate { get; set; }
@@ -49,7 +50,7 @@ internal sealed class AiTestServer : IDisposable
                 LastModel = json.RootElement.GetProperty("model").GetString()!;
                 RequestCount++;
                 if (ResponseGate is { } gate) await gate.Task.WaitAsync(stop.Token);
-                var body = Encoding.UTF8.GetBytes(Body);
+                var body = Encoding.UTF8.GetBytes(ReplyFactory?.Invoke(json.RootElement) ?? Body);
                 var response = Encoding.ASCII.GetBytes($"HTTP/1.1 {Status} Test\r\nContent-Type: application/json\r\nContent-Length: {body.Length}\r\nConnection: close\r\n\r\n");
                 await stream.WriteAsync(response, stop.Token);
                 await stream.WriteAsync(body, stop.Token);
