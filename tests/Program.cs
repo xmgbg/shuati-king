@@ -56,6 +56,7 @@ internal static class Program
         QuestionImportChecks.Run();
         QuestionGenerationChecks.Run();
         DatabaseChecks.Models();
+        MigrationChecks.Models();
         QuestionChecks.Run();
         LearningChecks.Models();
         ExamHistoryChecks.Models();
@@ -159,6 +160,7 @@ internal static class Program
         ((RadioButton)profile.FindName("LightTheme")).IsChecked = true;
         DocumentReadingChecks.Run(window);
         DatabaseChecks.Views();
+        MigrationChecks.StartupFailure();
         ImportChecks.Run(window);
         QuestionImportChecks.Views(window);
         ReviewChecks.Run(window);

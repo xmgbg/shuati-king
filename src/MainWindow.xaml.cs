@@ -23,7 +23,6 @@ public partial class MainWindow : Window
     private ExamView? examView;
     private ExamHistoryView? historyView;
     private bool selectingTab;
-    private readonly bool canSaveLearning = true;
 
     public MainWindow() : this(new SettingsStore()) { }
 
@@ -31,7 +30,6 @@ public partial class MainWindow : Window
     {
         this.store = store;
         database = new(store.DatabasePath); database.Initialize();
-        library = new(database.LoadLibraries());
         try { settings = store.Load(); }
         catch (Exception error) when (error is System.IO.IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException or System.Text.Json.JsonException)
         {
@@ -41,9 +39,8 @@ public partial class MainWindow : Window
         if (settings.SelectedConfigurationId == Guid.Empty) settings.SelectedConfigurationId = settings.Configurations[0].Id;
         runningModel = settings.Configurations.Single(c => c.Id == settings.SelectedConfigurationId).Model.Trim();
         learningStore = new LearningStore(store.LearningPath);
-        try { learning = learningStore.Load(); }
-        catch (Exception error) when (error is System.IO.IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
-        { learning = new(); canSaveLearning = false; MessageBox.Show("学习进度读取失败，本次暂停写入以保留原文件。请备份并检查本地学习记录。", "读取学习进度失败"); }
+        learning = learningStore.Load();
+        library = new(database.LoadLibraries());
         ThemeManager.Apply(settings.Theme);
         InitializeComponent();
         library.ActionRequested += HandleLibraryAction;
@@ -57,7 +54,7 @@ public partial class MainWindow : Window
             try { foreach (var bank in library.Banks) database.SaveLibrary(bank); }
             catch (Exception error) when (error is System.IO.IOException or UnauthorizedAccessException or Microsoft.Data.Sqlite.SqliteException)
             { Title = "刷题KING · 保存失败，关闭已取消，请检查数据目录后重试"; e.Cancel = true; return; }
-            examView?.PauseForNavigation(); SaveLearning();
+            examView?.PauseForNavigation(); if (!TrySaveLearning()) e.Cancel = true;
         };
         Closed += (_, _) => SystemEvents.UserPreferenceChanged -= SystemPreferenceChanged;
     }
@@ -162,13 +159,13 @@ public partial class MainWindow : Window
         historyView ??= new ExamHistoryView(learning, () => ShowExam(), () => settings.QuestionFontSize);
         historyView.Refresh(); PageHost.Content = historyView;
     }
-    private void SaveLearning()
+    private void SaveLearning() => TrySaveLearning();
+    private bool TrySaveLearning()
     {
-        if (learningStore is null) return;
-        if (!canSaveLearning) { Title = "刷题KING · 学习记录无法读取，当前进度未保存"; return; }
-        try { learningStore.Save(learning); }
-        catch (Exception error) when (error is System.IO.IOException or UnauthorizedAccessException)
-        { Title = "刷题KING · 学习进度保存失败，请检查本机目录权限"; }
+        if (learningStore is null) return true;
+        try { learningStore.Save(learning); return true; }
+        catch (Exception error) when (error is System.IO.IOException or UnauthorizedAccessException or Microsoft.Data.Sqlite.SqliteException)
+        { Title = "刷题KING · 学习进度保存失败，请检查磁盘空间与数据目录权限"; return false; }
     }
 
     private void ShowReview(SampleLibrary selected)

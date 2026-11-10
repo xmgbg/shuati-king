@@ -39,10 +39,12 @@ internal static class ExamHistoryChecks
         var legacy = JsonSerializer.SerializeToNode(new LearningState { Exam = saved })!.AsObject();
         legacy.Remove("ExamHistory");
         var oldExam = legacy["Exam"]!.AsObject(); oldExam.Remove("Id"); oldExam.Remove("StartedAt"); oldExam.Remove("FinishedAt");
-        File.WriteAllText(path, legacy.ToJsonString());
-        var migrated = store.Load();
+        var legacyPath = Program.TestPath("history-legacy.json");
+        File.WriteAllText(legacyPath, legacy.ToJsonString());
+        var legacyStore = new LearningStore(legacyPath);
+        var migrated = legacyStore.Load();
         Program.Check(migrated.ExamHistory.Count == 1 && migrated.ExamHistory[0].Score == 6 && migrated.ExamHistory[0].FinishedAt is null, "兼容旧版已交卷试卷且不编造历史时间");
-        store.Save(migrated); var reopened = store.Load();
+        legacyStore.Save(migrated); var reopened = legacyStore.Load();
         Program.Check(reopened.ExamHistory.Count == 1 && reopened.ExamHistory[0].Id == migrated.ExamHistory[0].Id, "兼容后再次打开不重复归档");
         File.Delete(path);
     }

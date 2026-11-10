@@ -242,7 +242,11 @@ public partial class ImportView : UserControl
         SourcePage.IsEnabled = KnowledgeSettings.IsEnabled = GenerateButton.IsEnabled = BackButton.IsEnabled = NextButton.IsEnabled = false;
         ResultPanel.Visibility = GenerationProgress.Visibility = CancelImportButton.Visibility = Visibility.Visible;
         using var cancellation = new CancellationTokenSource(); importCancellation = cancellation;
-        void Progress() => GenerationFeedback.Text = $"已处理 {importSession.CompletedBatches} / {Plan.Batches.Length} 批…";
+        void Progress()
+        {
+            GenerationFeedback.Text = $"已处理 {importSession.CompletedBatches} / {Plan.Batches.Length} 批…";
+            if (importSession.CompletedBatches > 0) PublishImportedQuestions();
+        }
         Progress();
         try
         {
