@@ -232,7 +232,7 @@ public partial class ImportView : UserControl
         if (importSession.Complete)
         {
             if (existing || targets.Select((target, type) => target - (CurrentLibrary?.Questions.Count(q => (int)q.Type == type) ?? 0)).All(left => left <= 0))
-            { GenerationFeedback.Text = "处理已完成，可查看并审核草稿。"; return; }
+            { PublishImportedQuestions(); GenerationFeedback.Text = "处理已完成，可查看并审核草稿。"; return; }
             var missing = targets.Select((target, type) => Math.Max(0, target - (CurrentLibrary?.Questions.Count(q => (int)q.Type == type) ?? 0))).ToArray();
             // 用户再次点击才补充，已确认的整份目标题量仍保留，补充请求只分配缺口。
             Plan = MaterialPlanner.ForGeneration(MaterialPlanner.Create(Document!, false, missing, config)) with { Targets = plan.Targets };
@@ -278,7 +278,10 @@ public partial class ImportView : UserControl
             session.Issues.AddRange(QuestionRules.RemoveDuplicateDrafts(CurrentLibrary, session.Questions.Select(question => question.Id)));
             foreach (var issue in session.Issues)
                 if (!CurrentLibrary.ImportIssues.Contains(issue)) CurrentLibrary.ImportIssues.Add(issue);
-            CurrentLibrary.NotifyChanged(); draftsChanged(CurrentLibrary);
+            CurrentLibrary.NotifyChanged();
+            try { draftsChanged(CurrentLibrary); }
+            catch (Exception error) when (error is System.IO.IOException or UnauthorizedAccessException or Microsoft.Data.Sqlite.SqliteException)
+            { GenerationFeedback.Text += "\n本机保存失败，草稿仍在内存中，请检查数据目录后重试保存或进入审核。"; }
         }
         var shortfall = session.Plan.ExistingQuestions ? "" : " · 仍缺 " + session.Plan.Targets.Select((target, type) => Math.Max(0, target - (CurrentLibrary?.Questions.Count(q => (int)q.Type == type) ?? 0))).Sum() + " 道";
         ActualCounts.Text = $"草稿 {CurrentLibrary?.Count ?? 0} 道 · 待补全 {CurrentLibrary?.IncompleteCount ?? 0} 道{shortfall}\n输入 {session.InputTokens} / 输出 {session.OutputTokens} Token" +

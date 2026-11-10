@@ -9,7 +9,8 @@ namespace ShuatiKing;
 
 public partial class MainWindow : Window
 {
-    private readonly LibraryView library = new();
+    private readonly LibraryView library;
+    private readonly DatabaseStore database;
     private readonly LocalSettings settings;
     private readonly SettingsStore store;
     private ProfileView? profile;
@@ -29,6 +30,8 @@ public partial class MainWindow : Window
     public MainWindow(SettingsStore store)
     {
         this.store = store;
+        database = new(store.DatabasePath); database.Initialize();
+        library = new(database.LoadLibraries());
         try { settings = store.Load(); }
         catch (Exception error) when (error is System.IO.IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException or System.Text.Json.JsonException)
         {
@@ -48,7 +51,14 @@ public partial class MainWindow : Window
         library.UpdateProgress(learning.Practice);
         LibraryTab.IsChecked = true;
         SystemEvents.UserPreferenceChanged += SystemPreferenceChanged;
-        Closing += (_, _) => { examView?.PauseForNavigation(); SaveLearning(); };
+        Closing += (_, e) =>
+        {
+            if (PageHost.Content is ReviewView review && !review.SaveDraft()) { e.Cancel = true; return; }
+            try { foreach (var bank in library.Banks) database.SaveLibrary(bank); }
+            catch (Exception error) when (error is System.IO.IOException or UnauthorizedAccessException or Microsoft.Data.Sqlite.SqliteException)
+            { Title = "刷题KING · 保存失败，关闭已取消，请检查数据目录后重试"; e.Cancel = true; return; }
+            examView?.PauseForNavigation(); SaveLearning();
+        };
         Closed += (_, _) => SystemEvents.UserPreferenceChanged -= SystemPreferenceChanged;
     }
 
@@ -56,7 +66,7 @@ public partial class MainWindow : Window
     {
         if (PageHost is null || selectingTab) return;
         if (PageHost.Content is ExamView exam) exam.PauseForNavigation();
-        if (PageHost.Content is ReviewView review) review.SaveDraft();
+        if (PageHost.Content is ReviewView review && !review.SaveDraft()) return;
         SaveLearning();
         ProfileButton.SetResourceReference(BackgroundProperty, "SurfaceBrush");
         var title = ((RadioButton)sender).Content.ToString()!;
@@ -71,7 +81,7 @@ public partial class MainWindow : Window
     private void ProfileClick(object sender, RoutedEventArgs e)
     {
         if (PageHost.Content is ExamView exam) exam.PauseForNavigation();
-        if (PageHost.Content is ReviewView review) review.SaveDraft();
+        if (PageHost.Content is ReviewView review && !review.SaveDraft()) return;
         SaveLearning();
         foreach (var tab in NavigationTabs.Children.OfType<RadioButton>()) tab.IsChecked = false;
         profile ??= new ProfileView(settings, store, RefreshProfile, runningModel);
@@ -88,12 +98,12 @@ public partial class MainWindow : Window
     {
         if (action == "导入资料")
         {
-            importView ??= new ImportView(ShowReview, library.AddLibrary, ShowLibrary, ImportConfiguration);
+            importView ??= new ImportView(ShowReview, SaveImportedLibrary, ShowLibrary, ImportConfiguration);
             PageHost.Content = importView;
         }
         else if (action == "导入题库")
         {
-            var dialog = new PackageDialog(added => { library.AddLibrary(added); ShowLibrary(); }) { Owner = this };
+            var dialog = new PackageDialog(added => { SaveImportedLibrary(added); ShowLibrary(); }) { Owner = this };
             dialog.ShowDialog();
         }
         else if (action == "模拟考试") ShowExam(selected);
@@ -101,6 +111,12 @@ public partial class MainWindow : Window
         else if (action == "继续练习") { ShowPractice(); practiceView!.ContinuePractice(); }
         else if (action == "题目管理" && selected is not null) ShowReview(selected);
         else ShowPlaceholder(action);
+    }
+
+    private void SaveImportedLibrary(SampleLibrary bank)
+    {
+        library.AddLibrary(bank);
+        database.SaveLibrary(bank);
     }
 
     private AiConfiguration? ImportConfiguration()
@@ -161,7 +177,7 @@ public partial class MainWindow : Window
         var review = new ReviewView(selected,
             () => { if (origin is not null) PageHost.Content = origin; else ShowLibrary(); },
             () => { if (origin is not null) importView = null; ShowLibrary(); },
-            settings.QuestionFontSize, origin is not null);
+            settings.QuestionFontSize, origin is not null, database.SaveLibrary);
         review.ExportRequested += bank => new PackageDialog(bank) { Owner = this }.ShowDialog();
         PageHost.Content = review;
     }

@@ -11,16 +11,19 @@ public partial class ReviewView : UserControl
     private readonly SampleLibrary library;
     private readonly Action back;
     private readonly Action home;
+    private readonly Action<SampleLibrary>? persist;
     private readonly List<(TextBox Text, ToggleButton Correct)> optionRows = [];
     private bool loading = true;
     private string filter = "all";
     public QuestionDraft? CurrentQuestion { get; private set; }
     public event Action<SampleLibrary>? ExportRequested;
 
-    public ReviewView(SampleLibrary library, Action back, Action home, int questionFontSize = 18, bool fromImport = false)
+    public ReviewView(SampleLibrary library, Action back, Action home, int questionFontSize = 18, bool fromImport = false, Action<SampleLibrary>? persist = null)
     {
+        this.persist = persist;
         this.library = library; this.back = back; this.home = home;
         InitializeComponent();
+        if (persist is not null) ReviewFeedback.Text = "草稿自动保存到本机，审核确认后可用于练习。";
         ReturnButton.Visibility = fromImport ? Visibility.Visible : Visibility.Collapsed;
         LibraryCaption.Text = library.Name + " · " + library.Source;
         OriginalText.Text = string.IsNullOrEmpty(library.SourceText) ? "当前题库为示例数据，没有原始文档。" : library.SourceText;
@@ -137,9 +140,9 @@ public partial class ReviewView : UserControl
     private void StemEdited(object sender, TextChangedEventArgs e)
     { if (QuestionPreview is not null) QuestionPreview.Text = StemInput.Text; }
 
-    private void SaveEditor()
+    private bool SaveEditor()
     {
-        if (loading || CurrentQuestion is not { } q) return;
+        if (loading || CurrentQuestion is not { } q) return true;
         var before = q.ContentSignature;
         q.Type = (QuestionType)QuestionTypeInput.SelectedIndex; q.Stem = StemInput.Text.Trim(); q.Explanation = ExplanationInput.Text.Trim();
         var choice = q.Type is QuestionType.Single or QuestionType.Multiple;
@@ -149,6 +152,7 @@ public partial class ReviewView : UserControl
         q.BlankAnswers = q.Type != QuestionType.Blank || string.IsNullOrWhiteSpace(BlankAnswersInput.Text) ? [] : BlankAnswersInput.Text.Replace("\r", "").Split('\n').Select(line => line.Split('|').Select(x => x.Trim()).Where(x => x.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList()).ToList();
         if (before != q.ContentSignature) q.IsConfirmed = false;
         q.NotifyChanged(); library.NotifyChanged(); UpdateValidation(); UpdateSummary();
+        return Persist();
     }
 
     private void UpdateValidation()
@@ -161,17 +165,18 @@ public partial class ReviewView : UserControl
 
     private void SaveQuestion(object sender, RoutedEventArgs e)
     {
-        SaveEditor();
+        if (!SaveEditor()) return;
         ReviewFeedback.Text = CurrentQuestion?.ValidationError is { } error ? "已保存草稿 · " + error + " 补全后才能确认入库。" : "题目修改已保存。内容发生变化的题目需要重新确认入库。";
         RefreshList();
     }
 
     private void ConfirmQuestion(object sender, RoutedEventArgs e)
     {
-        SaveEditor();
+        if (!SaveEditor()) return;
         if (CurrentQuestion is not { } q) return;
         if (QuestionRules.ConfirmationError(library, q) is { } error) { ReviewFeedback.Text = "无法入库 · " + error; return; }
         q.IsConfirmed = true; q.BatchSelected = false; q.NotifyChanged(); library.NotifyChanged();
+        if (!Persist()) { q.IsConfirmed = false; q.NotifyChanged(); return; }
         ReviewFeedback.Text = "已确认入库，返回题库后可查看最新可用状态。"; RefreshList();
     }
 
@@ -185,9 +190,10 @@ public partial class ReviewView : UserControl
 
     private void BatchConfirm(object sender, RoutedEventArgs e)
     {
-        SaveEditor();
+        if (!SaveEditor()) return;
         var selected = library.Questions.Where(q => q.BatchSelected).ToList();
         if (selected.Count == 0) { ReviewFeedback.Text = "请先勾选需要确认的题目。"; return; }
+        var originalStates = selected.Select(q => (Question: q, Confirmed: q.IsConfirmed)).ToList();
         int accepted = 0, rejected = 0, duplicates = 0;
         foreach (var q in selected)
         {
@@ -196,6 +202,7 @@ public partial class ReviewView : UserControl
             q.IsConfirmed = true; q.BatchSelected = false; q.NotifyChanged(); accepted++;
         }
         library.NotifyChanged();
+        if (!Persist()) { foreach (var original in originalStates) { original.Question.IsConfirmed = original.Confirmed; original.Question.NotifyChanged(); } RefreshList(); return; }
         ReviewFeedback.Text = $"已确认 {accepted} 道题。" + (rejected > 0 ? $" {rejected} 道题尚未补全，已保留供修正。" : "") + (duplicates > 0 ? $" {duplicates} 道重复题未入库。" : "");
         RefreshList();
     }
@@ -207,9 +214,15 @@ public partial class ReviewView : UserControl
         ExportButton.IsEnabled = library.ConfirmedCount > 0;
     }
 
-    public void SaveDraft() => SaveEditor();
+    private bool Persist()
+    {
+        try { persist?.Invoke(library); return true; }
+        catch (Exception error) when (error is System.IO.IOException or UnauthorizedAccessException or Microsoft.Data.Sqlite.SqliteException)
+        { ReviewFeedback.Text = "本机保存失败，当前修改仍在内存中。请检查磁盘空间与权限后重试。"; return false; }
+    }
+    public bool SaveDraft() => SaveEditor();
 
-    private void Return(object sender, RoutedEventArgs e) { SaveEditor(); back(); }
-    private void Home(object sender, RoutedEventArgs e) { SaveEditor(); home(); }
-    private void Export(object sender, RoutedEventArgs e) { SaveEditor(); ExportRequested?.Invoke(library); }
+    private void Return(object sender, RoutedEventArgs e) { if (SaveEditor()) back(); }
+    private void Home(object sender, RoutedEventArgs e) { if (SaveEditor()) home(); }
+    private void Export(object sender, RoutedEventArgs e) { if (SaveEditor()) ExportRequested?.Invoke(library); }
 }

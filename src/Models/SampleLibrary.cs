@@ -25,9 +25,9 @@ public sealed class SampleLibrary : INotifyPropertyChanged
     public string Action => IsReady ? "查看与审核题目  ›" : "审核题目  ›";
     public string ReviewSummary => $"已入库 {ConfirmedCount} · 待审核 {Count - ConfirmedCount} · 待补全 {IncompleteCount}";
 
-    public SampleLibrary(string name, string source, int single = 0, int multiple = 0, int judgment = 0, int blank = 0, bool isReady = false, string color = "#0866FF")
+    public SampleLibrary(string name, string source, int single = 0, int multiple = 0, int judgment = 0, int blank = 0, bool isReady = false, string color = "#0866FF", Guid? id = null)
     {
-        Name = name; Source = source; Color = color;
+        Id = id ?? Guid.NewGuid(); Name = name; Source = source; Color = color;
         var counts = new[] { single, multiple, judgment, blank };
         for (var type = 0; type < counts.Length; type++)
         for (var i = 0; i < counts[type]; i++)

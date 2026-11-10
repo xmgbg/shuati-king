@@ -22,6 +22,12 @@ internal static class Program
         return Path.Combine(runDirectory, name);
     }
 
+    internal static void SeedLibraries(SettingsStore store)
+    {
+        var database = new DatabaseStore(store.DatabasePath); database.Initialize();
+        foreach (var bank in SampleLibrary.CreateExamples()) database.SaveLibrary(bank);
+    }
+
     private static string ScreenshotPath(string name)
     {
         var directory = Path.GetFullPath(".scratch/screenshots");
@@ -49,6 +55,7 @@ internal static class Program
         MaterialPlannerChecks.Run();
         QuestionImportChecks.Run();
         QuestionGenerationChecks.Run();
+        DatabaseChecks.Models();
         QuestionChecks.Run();
         LearningChecks.Models();
         ExamHistoryChecks.Models();
@@ -58,6 +65,7 @@ internal static class Program
         SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
         var settingsPath = Program.TestPath("check-settings.dat");
         var store = new SettingsStore(settingsPath);
+        SeedLibraries(store);
         var window = new MainWindow(store);
         window.Show();
         window.UpdateLayout();
@@ -150,6 +158,7 @@ internal static class Program
         Capture(window, "profile-compact-bottom");
         ((RadioButton)profile.FindName("LightTheme")).IsChecked = true;
         DocumentReadingChecks.Run(window);
+        DatabaseChecks.Views();
         ImportChecks.Run(window);
         QuestionImportChecks.Views(window);
         ReviewChecks.Run(window);

@@ -20,6 +20,7 @@ internal static class InteractivePreview
             exam.Advance(323); LearningRules.FinishExam(state, exam, false);
         }
         new LearningStore(settings.LearningPath).Save(state);
+        Program.SeedLibraries(settings);
         var window = new MainWindow(settings) { Title = "刷题KING · 界面验收" };
         window.Loaded += (_, _) => ((StackPanel)window.FindName("NavigationTabs")).Children.OfType<RadioButton>().Single(tab => tab.Content?.ToString() == "考试记录").IsChecked = true;
         app.Run(window);

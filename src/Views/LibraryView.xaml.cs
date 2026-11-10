@@ -7,22 +7,30 @@ namespace ShuatiKing.Views;
 
 public partial class LibraryView : UserControl
 {
-    private readonly ObservableCollection<SampleLibrary> libraries = new(SampleLibrary.CreateExamples());
+    private readonly ObservableCollection<SampleLibrary> libraries = new();
     public IReadOnlyList<SampleLibrary> Banks => libraries;
     public event Action<string, SampleLibrary?>? ActionRequested;
     public SampleLibrary? SelectedLibrary => LibraryList.SelectedItem as SampleLibrary;
 
-    public LibraryView()
+    public LibraryView(IEnumerable<SampleLibrary>? initial = null)
     {
         InitializeComponent();
+        foreach (var bank in initial ?? []) libraries.Add(bank);
         LibraryList.ItemsSource = libraries;
-        LibraryList.SelectedIndex = 0;
+        LibraryList.SelectedIndex = libraries.Count > 0 ? 0 : -1;
+        UpdateEmpty();
     }
 
     public void AddLibrary(SampleLibrary added)
     {
         if (!libraries.Contains(added)) libraries.Add(added);
-        LibraryList.SelectedItem = added;
+        LibraryList.SelectedItem = added; UpdateEmpty();
+    }
+
+    private void UpdateEmpty()
+    {
+        EmptyLibrary.Visibility = libraries.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        LibraryDetails.Visibility = libraries.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
     }
 
     public void UpdateProgress(PracticeSession? session)

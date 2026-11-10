@@ -25,7 +25,7 @@
       <Grid.ColumnDefinitions><ColumnDefinition Width="1.45*"/><ColumnDefinition Width="1.25*"/><ColumnDefinition Width="80"/><ColumnDefinition Width="90"/></Grid.ColumnDefinitions>
       <TextBlock Text="题库名称" Style="{StaticResource MutedText}"/><TextBlock Grid.Column="1" Text="资料来源" Style="{StaticResource MutedText}"/><TextBlock Grid.Column="2" Text="题目数量" Style="{StaticResource MutedText}"/><TextBlock Grid.Column="3" Text="状态" Style="{StaticResource MutedText}"/>
      </Grid>
-     <ListBox x:Name="LibraryList" BorderThickness="0" Background="Transparent" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="示例题库列表">
+     <ListBox x:Name="LibraryList" BorderThickness="0" Background="Transparent" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="题库列表">
       <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem">
        <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Padding" Value="0"/><Setter Property="Margin" Value="0,0,0,4"/>
        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem">
@@ -49,9 +49,9 @@
        </Grid>
       </DataTemplate></ListBox.ItemTemplate>
      </ListBox>
-     <TextBlock Text="ⓘ  示例数据" Style="{StaticResource MutedText}" FontSize="12" Margin="4,16,0,0"/>
+     <TextBlock x:Name="EmptyLibrary" Text="还没有题库，导入资料开始学习。" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="24,24,0,0"/>
     </StackPanel>
-    <Border Grid.Column="2" Style="{StaticResource Panel}" VerticalAlignment="Top" Padding="26" DataContext="{Binding SelectedItem, ElementName=LibraryList}">
+    <Border x:Name="LibraryDetails" Grid.Column="2" Style="{StaticResource Panel}" VerticalAlignment="Top" Padding="26" DataContext="{Binding SelectedItem, ElementName=LibraryList}">
      <StackPanel>
       <TextBlock Text="题库详情" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,26"/>
       <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>

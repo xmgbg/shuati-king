@@ -10,6 +10,15 @@ public sealed class SettingsStore
     private readonly string path;
     public SettingsStore(string? path = null) => this.path = path ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ShuatiKing", "settings.dat");
 
+    public string DatabasePath => DatabaseForLearningPath(LearningPath);
+    public static string DatabaseForLearningPath(string learningPath)
+    {
+        var file = Path.GetFileName(learningPath);
+        var name = file.EndsWith(".learning.json", StringComparison.OrdinalIgnoreCase) ? file[..^14] : Path.GetFileNameWithoutExtension(file);
+        var root = Path.GetDirectoryName(Path.GetFullPath(learningPath))!;
+        return Path.Combine(root, name == "settings" ? "" : name, "data", "shuati.db");
+    }
+
     public string LearningPath => Path.ChangeExtension(path, "learning.json");
 
     public LocalSettings Load()

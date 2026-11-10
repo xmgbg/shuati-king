@@ -12,6 +12,7 @@ internal static class LearningNavigationChecks
         var settingsPath = Program.TestPath("navigation.dat");
         var settings = new SettingsStore(settingsPath);
         var learningStore = new LearningStore(settings.LearningPath);
+        Program.SeedLibraries(settings);
         var first = new MainWindow(settings); first.Show(); first.UpdateLayout();
         Navigate(first, "模拟考试");
         var host = (ContentControl)first.FindName("PageHost"); var exam = (ExamView)host.Content;
