@@ -8,10 +8,12 @@ public sealed class AnswerItem
     public List<int> Selected { get; set; } = [];
     public bool? Judgment { get; set; }
     public List<string> Blanks { get; set; } = [];
+    public string Calculation { get; set; } = "";
     public bool Submitted { get; set; }
     public bool Correct { get; set; }
     public decimal Points { get; set; } = 1;
-    [JsonIgnore] public bool Answered => Selected.Count > 0 || Judgment is not null || Blanks.Any(s => !string.IsNullOrWhiteSpace(s));
+    [JsonIgnore] public bool Answered => Question.Type == QuestionType.Calculation ? NumericAnswer.TryParse(Calculation, out _)
+        : Selected.Count > 0 || Judgment is not null || Blanks.Any(s => !string.IsNullOrWhiteSpace(s));
 }
 
 public sealed class PracticeSession

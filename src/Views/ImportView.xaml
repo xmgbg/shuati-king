@@ -46,11 +46,12 @@
      <TextBlock x:Name="GenerateTitle" Text="选择题型与数量" FontSize="21" FontWeight="SemiBold" Margin="0,0,0,12"/>
      <TextBlock x:Name="GenerateDescription" TextWrapping="Wrap" Style="{StaticResource MutedText}" FontSize="14" Margin="0,0,0,20"/>
      <StackPanel x:Name="KnowledgeSettings">
-      <UniformGrid Columns="4" Margin="0,0,0,12">
+      <UniformGrid Columns="5" Margin="0,0,0,12">
        <StackPanel Margin="0,0,12,0"><Label Content="单选题" Target="{Binding ElementName=SingleCount}" Foreground="{DynamicResource TextBrush}" Padding="0,0,0,8"/><TextBox x:Name="SingleCount" TextChanged="TargetsChanged" Text="4" MaxLength="3" AutomationProperties.Name="单选题数量"/></StackPanel>
        <StackPanel Margin="0,0,12,0"><Label Content="多选题" Target="{Binding ElementName=MultipleCount}" Foreground="{DynamicResource TextBrush}" Padding="0,0,0,8"/><TextBox x:Name="MultipleCount" TextChanged="TargetsChanged" Text="2" MaxLength="3" AutomationProperties.Name="多选题数量"/></StackPanel>
        <StackPanel Margin="0,0,12,0"><Label Content="判断题" Target="{Binding ElementName=JudgmentCount}" Foreground="{DynamicResource TextBrush}" Padding="0,0,0,8"/><TextBox x:Name="JudgmentCount" TextChanged="TargetsChanged" Text="2" MaxLength="3" AutomationProperties.Name="判断题数量"/></StackPanel>
-       <StackPanel><Label Content="填空题" Target="{Binding ElementName=BlankCount}" Foreground="{DynamicResource TextBrush}" Padding="0,0,0,8"/><TextBox x:Name="BlankCount" TextChanged="TargetsChanged" Text="2" MaxLength="3" AutomationProperties.Name="填空题数量"/></StackPanel>
+       <StackPanel Margin="0,0,12,0"><Label Content="填空题" Target="{Binding ElementName=BlankCount}" Foreground="{DynamicResource TextBrush}" Padding="0,0,0,8"/><TextBox x:Name="BlankCount" TextChanged="TargetsChanged" Text="2" MaxLength="3" AutomationProperties.Name="填空题数量"/></StackPanel>
+       <StackPanel><Label Content="计算题" Target="{Binding ElementName=CalculationCount}" Foreground="{DynamicResource TextBrush}" Padding="0,0,0,8"/><TextBox x:Name="CalculationCount" TextChanged="TargetsChanged" Text="0" MaxLength="3" AutomationProperties.Name="计算题数量"/></StackPanel>
       </UniformGrid>
       <TextBlock Text="数量为 0 时不生成该题型。每种题型最多 100 道。" Style="{StaticResource MutedText}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,20"/>
 

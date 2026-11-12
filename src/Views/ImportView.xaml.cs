@@ -151,7 +151,7 @@ public partial class ImportView : UserControl
             SourceInput.Text = Document!.Text;
             CurrentLibrary?.UpdateSource(LibraryNameInput.Text.Trim(), FileMode.IsChecked == true ? fileName! : "粘贴文字", Document!.Text);
             if (CurrentLibrary is not null) CurrentLibrary.SourceDocument = Document;
-            Plan = MaterialPlanner.Create(Document!, ExistingMode.IsChecked == true, [0, 0, 0, 0]);
+            Plan = MaterialPlanner.Create(Document!, ExistingMode.IsChecked == true, new int[QuestionDraft.TypeCount]);
             step = 2;
         }
         else if (CurrentLibrary?.Count > 0) { review(CurrentLibrary); return; }
@@ -181,7 +181,7 @@ public partial class ImportView : UserControl
         KnowledgeSettings.Visibility = existing ? Visibility.Collapsed : Visibility.Visible;
         GenerateTitle.Text = existing ? "整理现成题目" : "选择题型与数量";
         GenerateDescription.Text = existing ? "使用当前 AI 配置识别题目，按批次发送资料。原答案保留，缺答案题目待补全。" : "根据资料生成题目与解析，生成结果先进入待审核草稿。";
-        var requested = new[] { SingleCount, MultipleCount, JudgmentCount, BlankCount }.Select(input => int.TryParse(input.Text, out var value) ? value : -1).ToArray();
+        var requested = new[] { SingleCount, MultipleCount, JudgmentCount, BlankCount, CalculationCount }.Select(input => int.TryParse(input.Text, out var value) ? value : -1).ToArray();
         var generationComplete = CurrentLibrary is not null && requested.All(value => value >= 0) && requested.Select((value, type) => value <= CurrentLibrary.Questions.Count(q => (int)q.Type == type)).All(done => done);
         GenerateButton.Content = existing ? importSession is { Complete: true } ? "识别已完成" : importSession is { CompletedBatches: > 0 } ? "继续识别" : "识别题目" : generationComplete ? "生成已完成" : CurrentLibrary?.Count > 0 ? "补充生成缺少题目" : "生成草稿";
         TaskPlanSummary.Text = Plan is null ? "" : $"资料已分为 {Plan.Batches.Length} 批";
@@ -210,11 +210,11 @@ public partial class ImportView : UserControl
     private async Task RecognizeExistingAsync()
     {
         var existing = ExistingMode.IsChecked == true;
-        var targets = new int[4];
+        var targets = new int[QuestionDraft.TypeCount];
         if (!existing)
         {
-            var inputs = new[] { SingleCount, MultipleCount, JudgmentCount, BlankCount };
-            for (var i = 0; i < 4; i++)
+            var inputs = new[] { SingleCount, MultipleCount, JudgmentCount, BlankCount, CalculationCount };
+            for (var i = 0; i < inputs.Length; i++)
                 if (!int.TryParse(inputs[i].Text, out targets[i]) || targets[i] < 0 || targets[i] > 100)
                 { FormFeedback.Text = "每种题型数量须为 0–100 的整数。"; return; }
             if (targets.Sum() == 0) { FormFeedback.Text = "请至少设置一道题。"; return; }

@@ -21,8 +21,8 @@ public static class MaterialPlanner
             var left = batch.Targets.ToArray();
             while (left.Sum() > 0)
             {
-                var counts = new int[4]; var available = 10;
-                for (var type = 0; type < 4; type++)
+                var counts = new int[QuestionDraft.TypeCount]; var available = 10;
+                for (var type = 0; type < QuestionDraft.TypeCount; type++)
                 { counts[type] = Math.Min(left[type], available); left[type] -= counts[type]; available -= counts[type]; }
                 batches.Add(new(batches.Count + 1, batch.Units, counts.ToImmutableArray()));
             }
@@ -33,7 +33,8 @@ public static class MaterialPlanner
     public static MaterialPlan Create(SourceDocument source, bool existing, int[] targets, AiConfiguration? configuration = null)
     {
         if (!source.HasText) throw new ArgumentException("资料内容不能为空。");
-        if (targets.Length != 4 || targets.Any(number => number < 0 || number > 100)) throw new ArgumentException("题量必须为四种题型各 0–100 道。");
+        if (targets.Length is not (4 or QuestionDraft.TypeCount) || targets.Any(number => number < 0 || number > 100)) throw new ArgumentException("每种题型的题量须为 0–100 道。");
+        if (targets.Length == 4) targets = [.. targets, 0];
         var units = new List<MaterialUnit>();
         var pieces = new List<SourceExcerpt>();
         var scope = "全文";
@@ -93,12 +94,12 @@ public static class MaterialPlanner
                 groups.Add([]);
             groups[^1].Add(unit);
         }
-        var allocations = groups.Select(_ => new int[4]).ToArray();
+        var allocations = groups.Select(_ => new int[QuestionDraft.TypeCount]).ToArray();
         if (!existing)
         {
             var weights = groups.Select(group => group.Sum(unit => unit.Text.Count(character => !char.IsWhiteSpace(character)))).ToArray();
             var total = weights.Sum();
-            for (var type = 0; type < 4; type++)
+            for (var type = 0; type < QuestionDraft.TypeCount; type++)
             {
                 var quotas = weights.Select(weight => (double)weight / total * targets[type]).ToArray();
                 for (var i = 0; i < groups.Count; i++) allocations[i][type] = (int)Math.Floor(quotas[i]);

@@ -55,6 +55,7 @@ internal static class Program
         MaterialPlannerChecks.Run();
         QuestionImportChecks.Run();
         QuestionGenerationChecks.Run();
+        CalculationChecks.Models();
         DatabaseChecks.Models();
         MigrationChecks.Models();
         QuestionChecks.Run();
@@ -170,6 +171,7 @@ internal static class Program
         PracticeLayoutChecks.Run(window);
         ExamChecks.Run(window);
         ExamTypeChecks.Run(window);
+        CalculationChecks.Views(window);
         ExamLayoutChecks.Run(window);
         ExamHistoryChecks.Views(window);
         window.Close();

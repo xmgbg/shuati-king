@@ -17,6 +17,7 @@ public sealed class SampleLibrary : INotifyPropertyChanged
     public int Multiple => Questions.Count(q => q.Type == QuestionType.Multiple);
     public int Judgment => Questions.Count(q => q.Type == QuestionType.Judgment);
     public int Blank => Questions.Count(q => q.Type == QuestionType.Blank);
+    public int Calculation => Questions.Count(q => q.Type == QuestionType.Calculation);
     public int Count => Questions.Count;
     public int ConfirmedCount => Questions.Count(q => q.IsConfirmed && q.ValidationError is null);
     public int IncompleteCount => Questions.Count(q => !q.IsConfirmed && q.ValidationError is not null);

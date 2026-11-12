@@ -7,7 +7,7 @@ public static class LearningRules
     public static QuestionDraft Snapshot(QuestionDraft q) => new()
     {
         Id = q.Id, Type = q.Type, Stem = q.Stem, Options = [.. q.Options], CorrectOptions = [.. q.CorrectOptions],
-        JudgmentAnswer = q.JudgmentAnswer, BlankAnswers = q.BlankAnswers.Select(a => a.ToList()).ToList(), Explanation = q.Explanation, IsConfirmed = true
+        JudgmentAnswer = q.JudgmentAnswer, BlankAnswers = q.BlankAnswers.Select(a => a.ToList()).ToList(), CalculationAnswer = q.CalculationAnswer, CalculationTolerance = q.CalculationTolerance, Explanation = q.Explanation, IsConfirmed = true
     };
 
     public static bool IsCorrect(AnswerItem answer)
@@ -17,6 +17,7 @@ public static class LearningRules
         {
             QuestionType.Single or QuestionType.Multiple => answer.Selected.Count == q.CorrectOptions.Count && answer.Selected.ToHashSet().SetEquals(q.CorrectOptions),
             QuestionType.Judgment => answer.Judgment is not null && answer.Judgment == q.JudgmentAnswer,
+            QuestionType.Calculation => NumericAnswer.Matches(answer.Calculation, q.CalculationAnswer, q.CalculationTolerance),
             _ => answer.Blanks.Count == q.BlankAnswers.Count && q.BlankAnswers.Select((aliases, i) => aliases.Any(a => string.Equals(a.Trim(), answer.Blanks[i].Trim(), StringComparison.OrdinalIgnoreCase))).All(x => x)
         };
     }
@@ -25,6 +26,7 @@ public static class LearningRules
     {
         QuestionType.Single or QuestionType.Multiple => string.Join("、", q.CorrectOptions.Select(i => ((char)('A' + i)).ToString())),
         QuestionType.Judgment => q.JudgmentAnswer == true ? "正确" : "错误",
+        QuestionType.Calculation => q.CalculationAnswer is { } value ? NumericAnswer.Format(value) + (q.CalculationTolerance > 0 ? $"（允许误差 ±{NumericAnswer.Format(q.CalculationTolerance)}）" : "") : "待补全",
         _ => string.Join("\n", q.BlankAnswers.Select((a, i) => $"第 {i + 1} 空：" + string.Join(" / ", a)))
     };
 
@@ -48,22 +50,21 @@ public static class LearningRules
 
     public static string? Shortage(SampleLibrary bank, int[] counts)
     {
-        var names = new[] { "单选题", "多选题", "判断题", "填空题" };
         var missing = new List<string>();
-        for (var t = 0; t < 4; t++)
+        for (var t = 0; t < counts.Length; t++)
         {
             int available = bank.Questions.Count(q => q.Type == (QuestionType)t && q.IsConfirmed && q.ValidationError is null);
-            if (counts[t] > available) missing.Add($"{names[t]}缺 {counts[t] - available} 道（可用 {available} 道）");
+            if (counts[t] > available) missing.Add($"{QuestionDraft.NameOf((QuestionType)t)}缺 {counts[t] - available} 道（可用 {available} 道）");
         }
         return missing.Count > 0 ? string.Join("；", missing) + "。请调整题量后再开始，不会重复抽题。" : null;
     }
 
     public static ExamSession CreateExam(SampleLibrary bank, int[] counts, decimal[] scores, int minutes, QuestionType[]? typeOrder = null)
     {
-        if (counts.Length != 4 || scores.Length != 4 || counts.Any(c => c < 0) || counts.Sum() == 0 || scores.Any(s => s <= 0) || minutes <= 0) throw new ArgumentException("组卷设置不完整。");
+        if (counts.Length is not (4 or QuestionDraft.TypeCount) || scores.Length != counts.Length || counts.Any(c => c < 0) || counts.Sum() == 0 || scores.Any(s => s <= 0) || minutes <= 0) throw new ArgumentException("组卷设置不完整。");
         if (Shortage(bank, counts) is { } missing) throw new ArgumentException(missing);
-        var order = typeOrder ?? Enum.GetValues<QuestionType>();
-        if (order.Any(t => !Enum.IsDefined(t)) || order.Distinct().Count() != order.Length || Enumerable.Range(0, 4).Any(t => counts[t] > 0 && !order.Contains((QuestionType)t)))
+        var order = typeOrder ?? Enum.GetValues<QuestionType>().Take(counts.Length).ToArray();
+        if (order.Any(t => !Enum.IsDefined(t) || (int)t >= counts.Length) || order.Distinct().Count() != order.Length || Enumerable.Range(0, counts.Length).Any(t => counts[t] > 0 && !order.Contains((QuestionType)t)))
             throw new ArgumentException("题型顺序须包含全部已选题型，且不能重复。");
         var items = new List<AnswerItem>();
         foreach (var type in order)
@@ -85,7 +86,7 @@ public static class LearningRules
     }
     public static AnswerItem SnapshotAnswer(AnswerItem item) => new()
     {
-        Question = Snapshot(item.Question), Selected = [.. item.Selected], Judgment = item.Judgment, Blanks = [.. item.Blanks],
+        Question = Snapshot(item.Question), Selected = [.. item.Selected], Judgment = item.Judgment, Blanks = [.. item.Blanks], Calculation = item.Calculation,
         Submitted = item.Submitted, Correct = item.Correct, Points = item.Points
     };
 

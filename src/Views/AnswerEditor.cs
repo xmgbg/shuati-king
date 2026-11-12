@@ -42,6 +42,18 @@ public sealed class AnswerEditor : UserControl
                 AddChoice(inputs, choice);
             }
         }
+        else if (q.Type == QuestionType.Calculation)
+        {
+            var input = new TextBox { Text = item.Calculation, FontSize = 16, Width = 260, HorizontalAlignment = HorizontalAlignment.Left };
+            var label = new Label { Content = "计算结果", Target = input, Padding = new Thickness(0, 0, 0, 8) };
+            label.SetResourceReference(ForegroundProperty, "TextBrush");
+            var feedback = new TextBlock { Text = "请输入有效数值，如 2.5 或 1e-3。", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) };
+            feedback.SetResourceReference(ForegroundProperty, "ErrorBrush");
+            void Validate() => feedback.Visibility = !readOnly && !string.IsNullOrWhiteSpace(input.Text) && !NumericAnswer.TryParse(input.Text, out _) ? Visibility.Visible : Visibility.Collapsed;
+            input.TextChanged += (_, _) => { item.Calculation = input.Text; Validate(); };
+            AutomationPropertiesName(input, "计算结果");
+            Validate(); inputs.Children.Add(label); inputs.Children.Add(input); inputs.Children.Add(feedback);
+        }
         else
         {
             while (item.Blanks.Count < q.BlankAnswers.Count) item.Blanks.Add("");

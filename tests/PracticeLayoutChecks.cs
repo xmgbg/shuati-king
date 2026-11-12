@@ -11,7 +11,7 @@ internal static class PracticeLayoutChecks
     {
         var banks = SampleLibrary.CreateExamples();
         var state = new LearningState();
-        foreach (var type in Enum.GetValues<QuestionType>())
+        foreach (var type in banks[0].Questions.Select(question => question.Type).Distinct())
             foreach (var question in banks[0].Questions.Where(q => q.Type == type).Take(3))
                 state.Wrongs.Add(new() { BankId = banks[0].Id, BankName = banks[0].Name, Question = LearningRules.Snapshot(question) });
         state.Wrongs.Add(new() { BankId = banks[1].Id, BankName = banks[1].Name, Question = LearningRules.Snapshot(banks[1].Questions[0]) });
@@ -29,12 +29,12 @@ internal static class PracticeLayoutChecks
         var summary = (Border)view.FindName("RoundSummarySection");
         var start = (Button)view.FindName("StartButton");
         Program.Check(Text(view, "SequentialCount") == "128 题" && Text(view, "RandomCount") == "128 题" && Text(view, "WrongCount") == "12 题", "三种模式显示所选题库的实际题量");
-        Program.Check(Text(view, "RoundCount") == "128" && Distribution(view).SequenceEqual(new[] { "60", "28", "20", "20" }), "顺序练习汇总与题库题型分布一致");
+        Program.Check(Text(view, "RoundCount") == "128" && Distribution(view).SequenceEqual(new[] { "60", "28", "20", "20", "0" }), "顺序练习汇总与题库题型分布一致");
         Program.Check(Program.Descendants<Button>(summary).Contains(start), "开始练习按钮位于本轮练习汇总区");
         Program.Check(((Border)view.FindName("ResumeCard")).TranslatePoint(new Point(), view).Y < setup.TranslatePoint(new Point(), view).Y && Text(view, "ResumeText").Contains("23 / 128"), "页头继续入口显示已保存练习进度");
         wrong.IsChecked = true;
         Program.Check(sequential.IsChecked == false && random.IsChecked == false && Text(view, "ModeName") == "错题重练" && Text(view, "RoundCount") == "12", "整行单选切换为错题重练并更新本轮题量");
-        Program.Check(Distribution(view).SequenceEqual(new[] { "3", "3", "3", "3" }), "错题模式显示当前题库错题的题型分布");
+        Program.Check(Distribution(view).SequenceEqual(new[] { "3", "3", "3", "3", "0" }), "错题模式显示当前题库错题的题型分布");
         Program.Capture(window, "practice-redesign-wrong");
         picker.SelectedIndex = 1;
         Program.Check(Text(view, "WrongCount") == "1 题" && Text(view, "RoundCount") == "1" && Text(view, "BankSource").Contains("86"), "切换题库后错题统计不混入其他题库");
@@ -65,7 +65,7 @@ internal static class PracticeLayoutChecks
         Program.Check(Text(empty, "RoundCount") == "0" && Text(empty, "Feedback").Contains("选择题库"), "无题库时显示零题并拦住开始操作");
         Program.Capture(window, "practice-redesign-empty");
     }
-    private static string[] Distribution(FrameworkElement view) => new[] { "SingleCount", "MultipleCount", "JudgmentCount", "BlankCount" }.Select(name => Text(view, name)).ToArray();
+    private static string[] Distribution(FrameworkElement view) => new[] { "SingleCount", "MultipleCount", "JudgmentCount", "BlankCount", "CalculationCount" }.Select(name => Text(view, name)).ToArray();
     private static string Text(FrameworkElement view, string name) => ((TextBlock)view.FindName(name)).Text;
     private static void Click(FrameworkElement view, string name) => ((Button)view.FindName(name)).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 }

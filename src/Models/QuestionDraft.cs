@@ -4,10 +4,12 @@ using System.Text.RegularExpressions;
 
 namespace ShuatiKing.Models;
 
-public enum QuestionType { Single, Multiple, Judgment, Blank }
+public enum QuestionType { Single, Multiple, Judgment, Blank, Calculation }
 
 public sealed class QuestionDraft : INotifyPropertyChanged
 {
+    public const int TypeCount = (int)QuestionType.Calculation + 1;
+
     public Guid Id { get; set; } = Guid.NewGuid();
     public QuestionType Type { get; set; }
     public string Stem { get; set; } = "";
@@ -15,6 +17,8 @@ public sealed class QuestionDraft : INotifyPropertyChanged
     public List<int> CorrectOptions { get; set; } = [];
     public bool? JudgmentAnswer { get; set; }
     public List<List<string>> BlankAnswers { get; set; } = [];
+    public decimal? CalculationAnswer { get; set; }
+    public decimal CalculationTolerance { get; set; }
     public string SourceNumber { get; set; } = "";
     public string SourceScope { get; set; } = "";
     public string SourceEvidence { get; set; } = "";
@@ -25,10 +29,15 @@ public sealed class QuestionDraft : INotifyPropertyChanged
     public string Explanation { get; set; } = "";
     public bool IsConfirmed { get; set; }
     public bool BatchSelected { get; set; }
-    public string TypeName => Type switch { QuestionType.Single => "单选题", QuestionType.Multiple => "多选题", QuestionType.Judgment => "判断题", _ => "填空题" };
+    public string TypeName => NameOf(Type);
+    public static string NameOf(QuestionType type) => type switch
+    {
+        QuestionType.Single => "单选题", QuestionType.Multiple => "多选题", QuestionType.Judgment => "判断题",
+        QuestionType.Blank => "填空题", QuestionType.Calculation => "计算题", _ => "未知题型"
+    };
     public string Status => IsConfirmed ? "已入库" : ValidationError is null ? "待确认" : "待补全";
     public string Summary => $"{TypeName} · {Status}";
-    public string ContentSignature => JsonSerializer.Serialize(new { Type, Stem, Options, CorrectOptions, JudgmentAnswer, BlankAnswers, Explanation });
+    public string ContentSignature => JsonSerializer.Serialize(new { Type, Stem, Options, CorrectOptions, JudgmentAnswer, BlankAnswers, CalculationAnswer, CalculationTolerance, Explanation });
 
     public string? ValidationError
     {
@@ -39,6 +48,12 @@ public sealed class QuestionDraft : INotifyPropertyChanged
             if (!choice && (Options.Count > 0 || CorrectOptions.Count > 0)) return "当前题型不能包含选择题选项或答案。";
             if (Type != QuestionType.Judgment && JudgmentAnswer is not null) return "当前题型不能包含判断题答案。";
             if (Type != QuestionType.Blank && BlankAnswers.Count > 0) return "当前题型不能包含填空题答案。";
+            if (Type != QuestionType.Calculation && (CalculationAnswer is not null || CalculationTolerance != 0)) return "当前题型不能包含计算题答案。";
+            if (Type == QuestionType.Calculation)
+            {
+                if (CalculationAnswer is null) return "请填写有效的参考数值。";
+                if (CalculationTolerance < 0) return "允许误差须为大于等于 0 的数值。";
+            }
             if (Options.Count > 26) return "选项不能超过 26 个。";
             if (string.IsNullOrWhiteSpace(Stem)) return "请补充题干。";
             if (Type is QuestionType.Single or QuestionType.Multiple)
@@ -83,6 +98,9 @@ public sealed class QuestionDraft : INotifyPropertyChanged
             case QuestionType.Blank:
                 question.Stem = $"【{topic} · 示例 {number}】TCP 的中文名称是 ____，UDP 的中文名称是 ____。";
                 question.BlankAnswers = [["传输控制协议", "Transmission Control Protocol"], ["用户数据报协议", "User Datagram Protocol"]]; break;
+            case QuestionType.Calculation:
+                question.Stem = $"【{topic} · 示例 {number}】每份资料 2.5 MB，4 份资料共多少 MB？";
+                question.CalculationAnswer = 10; question.Explanation = "2.5 × 4 = 10 MB。"; break;
         }
         return question;
     }

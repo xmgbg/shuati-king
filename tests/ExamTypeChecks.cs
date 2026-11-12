@@ -17,8 +17,8 @@ internal static class ExamTypeChecks
         ((ContentControl)window.FindName("PageHost")).Content = view; window.UpdateLayout();
         var panel = (StackPanel)view.FindName("TypeRows");
         var rows = panel.Children.Cast<Grid>().ToArray();
-        Program.Check(rows.Length == 7 && rows.Skip(4).Select(row => ((StackPanel)row.Children[0]).Children.OfType<TextBlock>().Single().Text)
-            .SequenceEqual(new[] { "简答题", "材料分析题", "名词解释题" }), "组卷设置包含三类新增主观题");
+        Program.Check(rows.Length == 8 && rows.Skip(4).Select(row => ((StackPanel)row.Children[0]).Children.OfType<TextBlock>().Single().Text)
+            .SequenceEqual(new[] { "计算题", "简答题", "材料分析题", "名词解释题" }), "组卷设置包含计算题与三类主观题");
         Program.Check(rows.Skip(4).All(row => Toggle(row).IsChecked == false && Inputs(row).All(input => !input.IsEnabled)),
             "新增题型默认未选中且不影响原有组卷");
         foreach (var row in rows.Skip(4))

@@ -71,6 +71,7 @@ public partial class PackageDialog : Window
                 lines.Add("答案：" + string.Join("、", q.CorrectOptions.Select(n => ((char)('A' + n)).ToString())));
             }
             else if (q.Type == QuestionType.Judgment) lines.Add("答案：" + (q.JudgmentAnswer == true ? "正确" : "错误"));
+            else if (q.Type == QuestionType.Calculation) lines.Add("答案：" + ShuatiKing.Services.LearningRules.CorrectText(q));
             else for (var blank = 0; blank < q.BlankAnswers.Count; blank++) lines.Add($"第 {blank + 1} 空：" + string.Join(" | ", q.BlankAnswers[blank]));
             if (!string.IsNullOrWhiteSpace(q.Explanation)) lines.Add("解析：" + q.Explanation);
             lines.Add("");

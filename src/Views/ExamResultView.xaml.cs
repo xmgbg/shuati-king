@@ -56,6 +56,7 @@ public partial class ExamResultView : UserControl
         {
             QuestionType.Single or QuestionType.Multiple => string.Join("、", item.Selected.Order().Select(i => ((char)('A' + i)).ToString())),
             QuestionType.Judgment => item.Judgment == true ? "正确" : "错误",
+            QuestionType.Calculation => item.Calculation,
             _ => string.Join("\n", item.Question.BlankAnswers.Select((_, i) => $"第 {i + 1} 空：" + (i < item.Blanks.Count && !string.IsNullOrWhiteSpace(item.Blanks[i]) ? item.Blanks[i] : "未填写")))
         };
     }

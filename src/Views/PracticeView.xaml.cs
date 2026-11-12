@@ -47,7 +47,7 @@ public partial class PracticeView : UserControl
         SequentialCount.Text = RandomCount.Text = $"{questions.Length} 题"; WrongCount.Text = $"{wrongs.Length} 题";
         var round = WrongMode.IsChecked == true ? wrongs : questions;
         ModeName.Text = SelectedMode; RoundCount.Text = round.Length.ToString();
-        var labels = new[] { SingleCount, MultipleCount, JudgmentCount, BlankCount };
+        var labels = new[] { SingleCount, MultipleCount, JudgmentCount, BlankCount, CalculationCount };
         for (var i = 0; i < labels.Length; i++) labels[i].Text = round.Count(q => (int)q.Type == i).ToString();
     }
     private void ApplySetupDensity()
@@ -65,8 +65,8 @@ public partial class PracticeView : UserControl
         RoundHeading.Margin = new Thickness(0, 0, 0, compact ? 10 : 20);
         RoundCount.FontSize = compact ? 32 : 44;
         ModeName.FontSize = compact ? 16 : 18;
-        SummaryDivider.Margin = new Thickness(0, compact ? 12 : 20, 0, compact ? 12 : 20);
-        TypeDistribution.Height = compact ? 88 : 112;
+        SummaryDivider.Margin = new Thickness(0, compact ? 6 : 20, 0, compact ? 6 : 20);
+        TypeDistribution.Height = compact ? 100 : 136;
         SummaryActions.Margin = new Thickness(0, compact ? 12 : 24, 0, 0);
         StartButton.Height = compact ? 44 : 52;
         RulesButton.Margin = new Thickness(0, compact ? 6 : 14, 0, 0);
@@ -122,7 +122,7 @@ public partial class PracticeView : UserControl
     {
         var p = state.Practice!; var item = p.Items[p.Index]; if (item.Submitted) return;
         if (!item.Answered || (item.Question.Type == QuestionType.Blank && item.Blanks.Any(string.IsNullOrWhiteSpace)))
-        { Feedback.Text = "请完成当前题目作答后再提交。"; return; }
+        { Feedback.Text = item.Question.Type == QuestionType.Calculation ? "请填写有效的计算结果。" : "请完成当前题目作答后再提交。"; return; }
         bool removed = LearningRules.Record(state, p.BankId, p.BankName, item);
         save(); RenderQuestion(); Dispatcher.InvokeAsync(() => AnswerResult.BringIntoView(), System.Windows.Threading.DispatcherPriority.Loaded); Feedback.Text = removed ? "回答正确，已从错题本移出；历史作答不受影响。" : "答案与进度已保存。";
     }

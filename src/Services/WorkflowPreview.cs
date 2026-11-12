@@ -9,7 +9,7 @@ public static class WorkflowPreview
     public static List<QuestionDraft> MissingQuestions(SampleLibrary library, int[] targets)
     {
         var result = new List<QuestionDraft>();
-        for (var i = 0; i < 4; i++)
+        for (var i = 0; i < targets.Length; i++)
         {
             var existing = library.Questions.Count(q => q.Type == (QuestionType)i);
             for (var n = existing; n < targets[i]; n++) result.Add(QuestionDraft.Example((QuestionType)i, library.Name, n + 1));
@@ -31,7 +31,7 @@ public static class WorkflowPreview
         questions = library.Questions.Where(q => q.IsConfirmed && q.ValidationError is null).Select(q => new
         {
             type = q.TypeName, stem = q.Stem, options = q.Options, correctOptions = q.CorrectOptions,
-            judgmentAnswer = q.JudgmentAnswer, blankAnswers = q.BlankAnswers, explanation = q.Explanation
+            judgmentAnswer = q.JudgmentAnswer, blankAnswers = q.BlankAnswers, calculationAnswer = q.CalculationAnswer, calculationTolerance = q.CalculationTolerance, explanation = q.Explanation
         })
     }, new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
 }

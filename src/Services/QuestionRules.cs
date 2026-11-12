@@ -8,7 +8,8 @@ public static class QuestionRules
     public static bool Same(QuestionDraft left, QuestionDraft right) => Signature(left) == Signature(right);
     private static string Signature(QuestionDraft q) => JsonSerializer.Serialize(new
     {
-        q.Type, q.Stem, q.Options, Correct = q.CorrectOptions.Order().ToArray(), q.JudgmentAnswer,
+        q.Type, q.Stem, q.Options, Correct = q.CorrectOptions.Order().ToArray(), q.JudgmentAnswer, Calculation = q.CalculationAnswer is { } value ? NumericAnswer.Format(value) : null,
+        Tolerance = NumericAnswer.Format(q.CalculationTolerance),
         Blank = q.BlankAnswers.Select(values => values.Order(StringComparer.Ordinal).ToArray()).ToArray()
     });
     public static List<ImportIssue> RemoveDuplicateDrafts(SampleLibrary library, IEnumerable<Guid> importedIds)
