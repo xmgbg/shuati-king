@@ -36,7 +36,7 @@ internal static class QuestionImportChecks
     private static async Task Models()
     {
         var config = Config();
-        QuestionImportSession Session() => new(MaterialPlanner.Create(DocumentReader.FromText(Source), true, [0, 0, 0, 0], config));
+        QuestionImportSession Session() => new(MaterialPlanner.Create(DocumentReader.FromText(Source), true, [], config));
         var requests = 0;
         using var client = new HttpClient(new Handler(async (request, token) =>
         {
@@ -100,10 +100,10 @@ internal static class QuestionImportChecks
                     "DeepSeek 与 MiMo 各自适配输出上限并关闭深度思考");
                 return Response(Envelope(Content));
             }));
-            await new QuestionImportService(provider).RunAsync(new(MaterialPlanner.Create(DocumentReader.FromText(Source), true, [0, 0, 0, 0], official)), official);
+            await new QuestionImportService(provider).RunAsync(new(MaterialPlanner.Create(DocumentReader.FromText(Source), true, [], official)), official);
         }
         var answerSource = DocumentReader.FromText(Source + "\n答案汇总\n3.对");
-        var withAnswerTable = new QuestionImportSession(MaterialPlanner.Create(answerSource, true, [0, 0, 0, 0], config));
+        var withAnswerTable = new QuestionImportSession(MaterialPlanner.Create(answerSource, true, [], config));
         var answerJson = System.Text.Json.Nodes.JsonNode.Parse(Content)!;
         answerJson["answers"]!.AsArray().Add(System.Text.Json.Nodes.JsonNode.Parse("""{"unitId":7,"number":"3","type":"Judgment","originalAnswer":"对","answerQuote":"3.对","judgmentAnswer":true}"""));
         QuestionImportService.ParseBatch(withAnswerTable, withAnswerTable.Plan.Batches[0], answerJson.ToJsonString());
@@ -111,7 +111,7 @@ internal static class QuestionImportChecks
         Program.Check(withAnswerTable.Questions[2].JudgmentAnswer == true && withAnswerTable.Questions[2].OriginalAnswer == "对", "文末答案表真实解析后补齐前文题目");
         AnswerAssociation(config);
         // 两批服务第二批失败后，重试只请求未完成批次。
-        var twoPlan = MaterialPlanner.Create(DocumentReader.FromText("第一章\n1. 判断甲。\n第二章\n2. 判断乙。"), true, [0, 0, 0, 0], config);
+        var twoPlan = MaterialPlanner.Create(DocumentReader.FromText("第一章\n1. 判断甲。\n第二章\n2. 判断乙。"), true, [], config);
         var resumed = new QuestionImportSession(twoPlan); var calls = 0;
         using var retry = new HttpClient(new Handler((_, _) => Task.FromResult(++calls == 2 ? Response("", 429) : Response(Envelope("{\"items\":[],\"answers\":[],\"skipped\":[]}")))));
         try { await new QuestionImportService(retry).RunAsync(resumed, config); } catch (InvalidOperationException) { }
@@ -122,7 +122,7 @@ internal static class QuestionImportChecks
 
     private static void AnswerAssociation(AiConfiguration config)
     {
-        var session = new QuestionImportSession(MaterialPlanner.Create(DocumentReader.FromText(Source), true, [0, 0, 0, 0], config));
+        var session = new QuestionImportSession(MaterialPlanner.Create(DocumentReader.FromText(Source), true, [], config));
         var a = new QuestionDraft { Type = QuestionType.Single, Stem = "甲", SourceScope = "第一章", SourceNumber = "1" };
         session.Questions.Add(a);
         session.Answers.Add(new("第二章", "1", QuestionType.Single, "B", "第 8 页：B", [1], null, []));

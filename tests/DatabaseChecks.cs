@@ -63,22 +63,20 @@ internal static class DatabaseChecks
         {
             if (++calls == 2)
             {
-                savedBeforeNextRequest = database.LoadLibraries().Any(value => value.Name == "按批落盘" && value.Count == 10);
+                savedBeforeNextRequest = database.LoadLibraries().Any(value => value.Name == "按批落盘" && value.Count == 4);
                 fixture.Server.Status = 429;
             }
             return reply(request);
         };
         var import = new ImportView(_ => { }, database.SaveLibrary, () => { }, () => fixture.Configuration);
         ((TextBox)import.FindName("LibraryNameInput")).Text = "按批落盘";
-        ((TextBox)import.FindName("SourceInput")).Text = "用于验证批次落盘的资料。";
+        ((TextBox)import.FindName("SourceInput")).Text = "第一章\n用于验证批次落盘的资料。\n第二章\n用于验证请求失败的资料。";
         void Click(string name) => ((Button)import.FindName(name)).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         Click("NextButton"); Click("NextButton");
-        ((TextBox)import.FindName("SingleCount")).Text = "11";
-        foreach (var name in new[] { "MultipleCount", "JudgmentCount", "BlankCount" }) ((TextBox)import.FindName(name)).Text = "0";
         var task = import.GenerateAsync(); var frame = new System.Windows.Threading.DispatcherFrame();
         task.ContinueWith(_ => import.Dispatcher.BeginInvoke(() => frame.Continue = false));
         System.Windows.Threading.Dispatcher.PushFrame(frame); task.GetAwaiter().GetResult();
-        Program.Check(savedBeforeNextRequest && database.LoadLibraries().Any(value => value.Name == "按批落盘" && value.Count == 10), "成功批次在下一次请求前落盘，后续请求失败不丢已有草稿");
+        Program.Check(savedBeforeNextRequest && database.LoadLibraries().Any(value => value.Name == "按批落盘" && value.Count == 4), "成功批次在下一次请求前落盘，后续请求失败不丢已有草稿");
         var failing = new ReviewView(after, () => { }, () => { }, persist: _ => throw new IOException("磁盘测试"));
         ((Button)failing.FindName("ConfirmQuestionButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         Program.Check(!after.Questions[0].IsConfirmed && ((TextBlock)failing.FindName("ReviewFeedback")).Text.Contains("保存失败"), "保存失败不显示入库成功");

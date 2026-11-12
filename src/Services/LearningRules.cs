@@ -7,7 +7,7 @@ public static class LearningRules
     public static QuestionDraft Snapshot(QuestionDraft q) => new()
     {
         Id = q.Id, Type = q.Type, Stem = q.Stem, Options = [.. q.Options], CorrectOptions = [.. q.CorrectOptions],
-        JudgmentAnswer = q.JudgmentAnswer, BlankAnswers = q.BlankAnswers.Select(a => a.ToList()).ToList(), CalculationAnswer = q.CalculationAnswer, CalculationTolerance = q.CalculationTolerance, Explanation = q.Explanation, IsConfirmed = true
+        JudgmentAnswer = q.JudgmentAnswer, BlankAnswers = q.BlankAnswers.Select(a => a.ToList()).ToList(), CalculationAnswer = q.CalculationAnswer, CalculationTolerance = q.CalculationTolerance, ReferenceAnswer = q.ReferenceAnswer, Explanation = q.Explanation, IsConfirmed = true
     };
 
     public static bool IsCorrect(AnswerItem answer)
@@ -18,7 +18,8 @@ public static class LearningRules
             QuestionType.Single or QuestionType.Multiple => answer.Selected.Count == q.CorrectOptions.Count && answer.Selected.ToHashSet().SetEquals(q.CorrectOptions),
             QuestionType.Judgment => answer.Judgment is not null && answer.Judgment == q.JudgmentAnswer,
             QuestionType.Calculation => NumericAnswer.Matches(answer.Calculation, q.CalculationAnswer, q.CalculationTolerance),
-            _ => answer.Blanks.Count == q.BlankAnswers.Count && q.BlankAnswers.Select((aliases, i) => aliases.Any(a => string.Equals(a.Trim(), answer.Blanks[i].Trim(), StringComparison.OrdinalIgnoreCase))).All(x => x)
+            QuestionType.Blank => answer.Blanks.Count == q.BlankAnswers.Count && q.BlankAnswers.Select((aliases, i) => aliases.Any(a => string.Equals(a.Trim(), answer.Blanks[i].Trim(), StringComparison.OrdinalIgnoreCase))).All(x => x),
+            _ => false
         };
     }
 
@@ -27,7 +28,8 @@ public static class LearningRules
         QuestionType.Single or QuestionType.Multiple => string.Join("、", q.CorrectOptions.Select(i => ((char)('A' + i)).ToString())),
         QuestionType.Judgment => q.JudgmentAnswer == true ? "正确" : "错误",
         QuestionType.Calculation => q.CalculationAnswer is { } value ? NumericAnswer.Format(value) + (q.CalculationTolerance > 0 ? $"（允许误差 ±{NumericAnswer.Format(q.CalculationTolerance)}）" : "") : "待补全",
-        _ => string.Join("\n", q.BlankAnswers.Select((a, i) => $"第 {i + 1} 空：" + string.Join(" / ", a)))
+        QuestionType.Blank => string.Join("\n", q.BlankAnswers.Select((a, i) => $"第 {i + 1} 空：" + string.Join(" / ", a))),
+        _ => q.ReferenceAnswer
     };
 
     public static bool Record(LearningState state, Guid bankId, string bankName, AnswerItem answer)
@@ -43,7 +45,7 @@ public static class LearningRules
     public static PracticeSession StartPractice(SampleLibrary bank, string mode, LearningState state)
     {
         var questions = mode == "错题重练" ? state.Wrongs.Where(w => w.BankId == bank.Id).Select(w => w.Question).ToArray()
-            : bank.Questions.Where(q => q.IsConfirmed && q.ValidationError is null).ToArray();
+            : bank.Questions.Where(q => q.IsAvailableForLearning).ToArray();
         if (mode == "随机练习") Random.Shared.Shuffle(questions);
         return new() { BankId = bank.Id, BankName = bank.Name, Mode = mode, Items = questions.Select(q => new AnswerItem { Question = Snapshot(q) }).ToList() };
     }
@@ -53,7 +55,7 @@ public static class LearningRules
         var missing = new List<string>();
         for (var t = 0; t < counts.Length; t++)
         {
-            int available = bank.Questions.Count(q => q.Type == (QuestionType)t && q.IsConfirmed && q.ValidationError is null);
+            int available = bank.Questions.Count(q => q.Type == (QuestionType)t && q.IsAvailableForLearning);
             if (counts[t] > available) missing.Add($"{QuestionDraft.NameOf((QuestionType)t)}缺 {counts[t] - available} 道（可用 {available} 道）");
         }
         return missing.Count > 0 ? string.Join("；", missing) + "。请调整题量后再开始，不会重复抽题。" : null;
@@ -61,7 +63,7 @@ public static class LearningRules
 
     public static ExamSession CreateExam(SampleLibrary bank, int[] counts, decimal[] scores, int minutes, QuestionType[]? typeOrder = null)
     {
-        if (counts.Length is not (4 or QuestionDraft.TypeCount) || scores.Length != counts.Length || counts.Any(c => c < 0) || counts.Sum() == 0 || scores.Any(s => s <= 0) || minutes <= 0) throw new ArgumentException("组卷设置不完整。");
+        if (counts.Length is not (4 or QuestionDraft.AutoGradedTypeCount) || scores.Length != counts.Length || counts.Any(c => c < 0) || counts.Sum() == 0 || scores.Any(s => s <= 0) || minutes <= 0) throw new ArgumentException("组卷设置不完整。");
         if (Shortage(bank, counts) is { } missing) throw new ArgumentException(missing);
         var order = typeOrder ?? Enum.GetValues<QuestionType>().Take(counts.Length).ToArray();
         if (order.Any(t => !Enum.IsDefined(t) || (int)t >= counts.Length) || order.Distinct().Count() != order.Length || Enumerable.Range(0, counts.Length).Any(t => counts[t] > 0 && !order.Contains((QuestionType)t)))
@@ -70,7 +72,7 @@ public static class LearningRules
         foreach (var type in order)
         {
             int t = (int)type;
-            var pool = bank.Questions.Where(q => q.Type == (QuestionType)t && q.IsConfirmed && q.ValidationError is null).ToArray();
+            var pool = bank.Questions.Where(q => q.Type == (QuestionType)t && q.IsAvailableForLearning).ToArray();
             Random.Shared.Shuffle(pool);
             items.AddRange(pool.Take(counts[t]).Select(q => new AnswerItem { Question = Snapshot(q), Points = scores[t] }));
         }

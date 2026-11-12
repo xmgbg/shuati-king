@@ -41,7 +41,7 @@ public partial class PracticeView : UserControl
     private void UpdateSetup()
     {
         var bank = BankPicker.SelectedItem as SampleLibrary;
-        var questions = bank?.Questions.Where(q => q.IsConfirmed && q.ValidationError is null).ToArray() ?? [];
+        var questions = bank?.Questions.Where(q => q.IsAvailableForLearning).ToArray() ?? [];
         var wrongs = bank is null ? [] : state.Wrongs.Where(w => w.BankId == bank.Id).Select(w => w.Question).ToArray();
         BankSource.Text = bank is null ? "" : $"{bank.Source} · {questions.Length} 题";
         SequentialCount.Text = RandomCount.Text = $"{questions.Length} 题"; WrongCount.Text = $"{wrongs.Length} 题";

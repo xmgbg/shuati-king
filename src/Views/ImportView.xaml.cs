@@ -25,7 +25,6 @@ public partial class ImportView : UserControl
     private bool selectingLocation;
     private SourceDocument? fileDocument;
     private SourceDocument? pasteDocument;
-    public MaterialPlan? Plan { get; private set; }
     public SourceDocument? Document { get; private set; }
     public SampleLibrary? CurrentLibrary { get; private set; }
     public int CurrentStep => step;
@@ -35,7 +34,21 @@ public partial class ImportView : UserControl
         this.configuration = configuration ?? (() => null);
         this.questionImport = questionImport ?? new();
         this.review = review; this.draftsChanged = draftsChanged; this.exit = exit;
-        InitializeComponent(); initializing = false; UpdatePage();
+        InitializeComponent();
+        foreach (var type in Enum.GetValues<QuestionType>())
+        {
+            var choice = new CheckBox
+            {
+                Name = type + "Type", Content = QuestionDraft.NameOf(type), Tag = type,
+                IsChecked = type is QuestionType.Single or QuestionType.Multiple or QuestionType.Judgment or QuestionType.Blank,
+                Style = (Style)FindResource("GenerationTypeChoice")
+            };
+            RegisterName(choice.Name, choice);
+            choice.Checked += GenerationSelectionChanged;
+            choice.Unchecked += GenerationSelectionChanged;
+            GenerationTypes.Children.Add(choice);
+        }
+        initializing = false; UpdatePage();
         Unloaded += (_, _) => importCancellation?.Cancel();
     }
 
@@ -129,7 +142,11 @@ public partial class ImportView : UserControl
     private void PreviewChanged(object sender, TextChangedEventArgs e)
     {
         if (initializing || selectingLocation) return;
-        if (SourceLocations.SelectedItem is SourceSection section) section.Text = PreviewInput.Text;
+        if (SourceLocations.SelectedItem is SourceSection section && section.Text != PreviewInput.Text)
+        {
+            section.Text = PreviewInput.Text;
+            importSession = null;
+        }
     }
 
     private void Next(object sender, RoutedEventArgs e)
@@ -151,7 +168,6 @@ public partial class ImportView : UserControl
             SourceInput.Text = Document!.Text;
             CurrentLibrary?.UpdateSource(LibraryNameInput.Text.Trim(), FileMode.IsChecked == true ? fileName! : "粘贴文字", Document!.Text);
             if (CurrentLibrary is not null) CurrentLibrary.SourceDocument = Document;
-            Plan = MaterialPlanner.Create(Document!, ExistingMode.IsChecked == true, new int[QuestionDraft.TypeCount]);
             step = 2;
         }
         else if (CurrentLibrary?.Count > 0) { review(CurrentLibrary); return; }
@@ -175,68 +191,68 @@ public partial class ImportView : UserControl
         GeneratePage.Visibility = step == 2 ? Visibility.Visible : Visibility.Collapsed;
         foreach (var (label, index) in new[] { (StepSource, 0), (StepPreview, 1), (StepGenerate, 2) })
         { label.SetResourceReference(TextBlock.ForegroundProperty, index == step ? "AccentBrush" : "MutedBrush"); label.FontWeight = index == step ? FontWeights.SemiBold : FontWeights.Normal; }
-        PathHint.Text = existing ? "保留原文，先预览检查，再进入现成题目整理与审核。" : "先检查资料文字，再选择题型和数量生成题目。";
+        ImportSidebar.Visibility = step == 2 ? Visibility.Collapsed : Visibility.Visible;
+        Grid.SetColumnSpan(ImportPanel, step == 2 ? 3 : 1);
+        ImportPanel.VerticalAlignment = step == 2 ? VerticalAlignment.Top : VerticalAlignment.Stretch;
+        ImportPanel.HorizontalAlignment = step == 2 ? HorizontalAlignment.Left : HorizontalAlignment.Stretch;
+        PathHint.Text = existing ? "保留原文，先预览检查，再进入现成题目整理与审核。" : "先检查资料文字，再选择题型生成题目。";
         RouteSummary.Text = existing ? "现成题目 → 预览文字 → AI 识别 → 修正与审核" : "知识资料 → 预览文字 → 生成草稿 → 审核入库";
 
         KnowledgeSettings.Visibility = existing ? Visibility.Collapsed : Visibility.Visible;
-        GenerateTitle.Text = existing ? "整理现成题目" : "选择题型与数量";
-        GenerateDescription.Text = existing ? "使用当前 AI 配置识别题目，按批次发送资料。原答案保留，缺答案题目待补全。" : "根据资料生成题目与解析，生成结果先进入待审核草稿。";
-        var requested = new[] { SingleCount, MultipleCount, JudgmentCount, BlankCount, CalculationCount }.Select(input => int.TryParse(input.Text, out var value) ? value : -1).ToArray();
-        var generationComplete = CurrentLibrary is not null && requested.All(value => value >= 0) && requested.Select((value, type) => value <= CurrentLibrary.Questions.Count(q => (int)q.Type == type)).All(done => done);
-        GenerateButton.Content = existing ? importSession is { Complete: true } ? "识别已完成" : importSession is { CompletedBatches: > 0 } ? "继续识别" : "识别题目" : generationComplete ? "生成已完成" : CurrentLibrary?.Count > 0 ? "补充生成缺少题目" : "生成草稿";
-        TaskPlanSummary.Text = Plan is null ? "" : $"资料已分为 {Plan.Batches.Length} 批";
-        FlowNotice.Visibility = Visibility.Collapsed;
-        FlowNotice.Text = existing ? "识别完成后先审核，确认后可用于练习。" : "知识资料出题暂为示例结果。";
+        GenerateTitle.Text = existing ? "整理现成题目" : "选择题型";
+        GenerateDescription.Text = existing ? "识别资料中的题目和原答案。" : "勾选要生成的题型，题量取决于资料内容。";
+        var selectedTypes = SelectedTypes();
+        var current = importSession is not null && importSession.Plan.ExistingQuestions == existing &&
+            (existing || importSession.Plan.SelectedTypes.SequenceEqual(selectedTypes));
+        GenerationActions.Visibility = current && importSession!.Complete ? Visibility.Collapsed : Visibility.Visible;
+        GenerateButton.IsEnabled = !generating && (existing || selectedTypes.Length > 0) && !(current && importSession!.Complete);
+        GenerateButton.Content = current && importSession!.Complete ? (existing ? "识别已完成" : "生成已完成")
+            : current && importSession!.CompletedBatches > 0 ? (existing ? "继续识别" : "继续生成")
+            : existing ? "识别题目" : "生成草稿";
         CancelImportButton.Content = existing ? "暂停识别" : "暂停生成";
         BackButton.Content = step == 0 ? "返回题库" : "‹  上一步";
         NextButton.Content = step == 0 ? "预览内容  ›" : step == 1 ? existing ? "确认内容，整理题目  ›" : "确认内容，设置出题  ›" : "查看并审核草稿  ›";
+        NextButton.Visibility = step == 2 && CurrentLibrary?.Count is not > 0 ? Visibility.Collapsed : Visibility.Visible;
         NextButton.IsEnabled = !generating && !reading && (step != 2 || CurrentLibrary?.Count > 0);
         PreservedDraftHint.Text = CurrentLibrary?.Count > 0 ? $"已保留 {CurrentLibrary.Count} 道草稿；返回修改不会清空题目。" : "";
     }
 
     private async void GenerateClick(object sender, RoutedEventArgs e) => await GenerateAsync();
 
+    private QuestionType[] SelectedTypes() => GenerationTypes.Children.OfType<CheckBox>()
+        .Where(choice => choice.IsChecked == true).Select(choice => (QuestionType)choice.Tag).ToArray();
+
+    private void GenerationSelectionChanged(object sender, RoutedEventArgs e)
+    {
+        if (!initializing && !generating) UpdatePage();
+    }
+
+    private void CancelImport(object sender, RoutedEventArgs e) => importCancellation?.Cancel();
+
     public async Task GenerateAsync()
     {
         if (generating || step != 2) return;
         var existing = ExistingMode.IsChecked == true;
-        if (existing) { await RecognizeExistingAsync(); return; }
-        await RecognizeExistingAsync();
-    }
-    private void TargetsChanged(object sender, TextChangedEventArgs e) { if (!initializing && !generating) UpdatePage(); }
-
-    private void CancelImport(object sender, RoutedEventArgs e) => importCancellation?.Cancel();
-
-    private async Task RecognizeExistingAsync()
-    {
-        var existing = ExistingMode.IsChecked == true;
-        var targets = new int[QuestionDraft.TypeCount];
-        if (!existing)
-        {
-            var inputs = new[] { SingleCount, MultipleCount, JudgmentCount, BlankCount, CalculationCount };
-            for (var i = 0; i < inputs.Length; i++)
-                if (!int.TryParse(inputs[i].Text, out targets[i]) || targets[i] < 0 || targets[i] > 100)
-                { FormFeedback.Text = "每种题型数量须为 0–100 的整数。"; return; }
-            if (targets.Sum() == 0) { FormFeedback.Text = "请至少设置一道题。"; return; }
-        }
+        var types = existing ? [] : SelectedTypes();
+        if (!existing && types.Length == 0) return;
         AiConfiguration? config;
         try { config = configuration()?.Copy(); }
         catch (InvalidOperationException error) { FormFeedback.Text = error.Message; return; }
         if (config is null) { FormFeedback.Text = "请先在我的中保存并选用 AI 配置。"; return; }
-        var plan = MaterialPlanner.Create(Document!, existing, targets, config);
-        if (!existing) plan = MaterialPlanner.ForGeneration(plan);
+        var plan = MaterialPlanner.Create(Document!, existing, types, config);
         if (importSession is null || importSession.Plan.SourceVersion != plan.SourceVersion || importSession.Plan.ConfigurationId != config.Id ||
-            importSession.Plan.Model != config.Model.Trim() || importSession.Plan.ExistingQuestions != existing || !importSession.Plan.Targets.SequenceEqual(targets))
+            importSession.Plan.Model != config.Model.Trim() || importSession.Plan.ExistingQuestions != existing || !importSession.Plan.SelectedTypes.SequenceEqual(types))
         { importSession = new(plan); handledCandidates.Clear(); }
-        Plan = importSession.Plan;
         if (importSession.Complete)
         {
-            if (existing || targets.Select((target, type) => target - (CurrentLibrary?.Questions.Count(q => (int)q.Type == type) ?? 0)).All(left => left <= 0))
-            { PublishImportedQuestions(); GenerationFeedback.Text = "处理已完成，可查看并审核草稿。"; return; }
-            var missing = targets.Select((target, type) => Math.Max(0, target - (CurrentLibrary?.Questions.Count(q => (int)q.Type == type) ?? 0))).ToArray();
-            // 用户再次点击才补充，已确认的整份目标题量仍保留，补充请求只分配缺口。
-            Plan = MaterialPlanner.ForGeneration(MaterialPlanner.Create(Document!, false, missing, config)) with { Targets = plan.Targets };
-            importSession = new(Plan) { InputTokens = importSession.InputTokens, OutputTokens = importSession.OutputTokens, UsageUnknown = importSession.UsageUnknown };
+            if (plan.Batches.IsEmpty)
+            {
+                ResultPanel.Visibility = Visibility.Visible;
+                GenerationFeedback.Text = "没有可用于出题的正文。";
+                PublishImportedQuestions();
+                UpdatePage();
+            }
+            return;
         }
         generating = true; FormFeedback.Text = "";
         SourcePage.IsEnabled = KnowledgeSettings.IsEnabled = GenerateButton.IsEnabled = BackButton.IsEnabled = NextButton.IsEnabled = false;
@@ -244,14 +260,16 @@ public partial class ImportView : UserControl
         using var cancellation = new CancellationTokenSource(); importCancellation = cancellation;
         void Progress()
         {
-            GenerationFeedback.Text = $"已处理 {importSession.CompletedBatches} / {Plan.Batches.Length} 批…";
+            GenerationFeedback.Text = $"已处理 {importSession.CompletedBatches} / {importSession.Plan.Batches.Length} 批…";
             if (importSession.CompletedBatches > 0) PublishImportedQuestions();
         }
         Progress();
         try
         {
             await questionImport.RunAsync(importSession, config, Progress, cancellation.Token);
-            GenerationFeedback.Text = existing ? "识别完成，请审核草稿。" : "生成完成，请审核草稿；不足题量可查看处理报告。";
+            GenerationFeedback.Text = importSession.Questions.Count > 0
+                ? (existing ? "识别完成，请审核草稿。" : "生成完成，请审核草稿。")
+                : (existing ? "未识别到可导入的题目。" : "所选题型未生成可审核的题目。");
         }
         catch (OperationCanceledException) { GenerationFeedback.Text = "任务已暂停，已完成批次保留，可手动继续。当前请求可能产生费用。"; }
         catch (Exception error) when (error is InvalidOperationException or ArgumentException) { GenerationFeedback.Text = error.Message; }
@@ -287,8 +305,11 @@ public partial class ImportView : UserControl
             catch (Exception error) when (error is System.IO.IOException or UnauthorizedAccessException or Microsoft.Data.Sqlite.SqliteException)
             { GenerationFeedback.Text += "\n本机保存失败，草稿仍在内存中，请检查数据目录后重试保存或进入审核。"; }
         }
-        var shortfall = session.Plan.ExistingQuestions ? "" : " · 仍缺 " + session.Plan.Targets.Select((target, type) => Math.Max(0, target - (CurrentLibrary?.Questions.Count(q => (int)q.Type == type) ?? 0))).Sum() + " 道";
-        ActualCounts.Text = $"草稿 {CurrentLibrary?.Count ?? 0} 道 · 待补全 {CurrentLibrary?.IncompleteCount ?? 0} 道{shortfall}\n输入 {session.InputTokens} / 输出 {session.OutputTokens} Token" +
+        var distribution = CurrentLibrary?.Questions.GroupBy(q => q.Type).OrderBy(group => group.Key)
+            .Select(group => $"{QuestionDraft.NameOf(group.Key)} {group.Count()}").ToArray() ?? [];
+        ActualCounts.Text = $"草稿 {CurrentLibrary?.Count ?? 0} 道 · 待补全 {CurrentLibrary?.IncompleteCount ?? 0} 道\n" +
+            (distribution.Length == 0 ? "" : string.Join(" · ", distribution) + "\n") +
+            $"输入 {session.InputTokens} / 输出 {session.OutputTokens} Token" +
             (session.UsageUnknown ? "（另有未确认用量）" : "");
         var report = CurrentLibrary?.ImportIssues ?? session.Issues;
         ImportReport.Text = string.Join("\n\n", report.Select(issue => issue.Location + " · " + issue.Reason + "\n" + issue.OriginalText));

@@ -4,11 +4,11 @@ using System.Text.RegularExpressions;
 
 namespace ShuatiKing.Models;
 
-public enum QuestionType { Single, Multiple, Judgment, Blank, Calculation }
+public enum QuestionType { Single, Multiple, Judgment, Blank, Calculation, ShortAnswer, MaterialAnalysis, TermExplanation }
 
 public sealed class QuestionDraft : INotifyPropertyChanged
 {
-    public const int TypeCount = (int)QuestionType.Calculation + 1;
+    public const int AutoGradedTypeCount = (int)QuestionType.Calculation + 1;
 
     public Guid Id { get; set; } = Guid.NewGuid();
     public QuestionType Type { get; set; }
@@ -19,6 +19,9 @@ public sealed class QuestionDraft : INotifyPropertyChanged
     public List<List<string>> BlankAnswers { get; set; } = [];
     public decimal? CalculationAnswer { get; set; }
     public decimal CalculationTolerance { get; set; }
+    public string ReferenceAnswer { get; set; } = "";
+    public bool IsSubjective => Type is QuestionType.ShortAnswer or QuestionType.MaterialAnalysis or QuestionType.TermExplanation;
+    public bool IsAvailableForLearning => IsConfirmed && !IsSubjective && ValidationError is null;
     public string SourceNumber { get; set; } = "";
     public string SourceScope { get; set; } = "";
     public string SourceEvidence { get; set; } = "";
@@ -33,11 +36,12 @@ public sealed class QuestionDraft : INotifyPropertyChanged
     public static string NameOf(QuestionType type) => type switch
     {
         QuestionType.Single => "单选题", QuestionType.Multiple => "多选题", QuestionType.Judgment => "判断题",
-        QuestionType.Blank => "填空题", QuestionType.Calculation => "计算题", _ => "未知题型"
+        QuestionType.Blank => "填空题", QuestionType.Calculation => "计算题", QuestionType.ShortAnswer => "简答题",
+        QuestionType.MaterialAnalysis => "材料分析题", QuestionType.TermExplanation => "名词解释题", _ => "未知题型"
     };
     public string Status => IsConfirmed ? "已入库" : ValidationError is null ? "待确认" : "待补全";
     public string Summary => $"{TypeName} · {Status}";
-    public string ContentSignature => JsonSerializer.Serialize(new { Type, Stem, Options, CorrectOptions, JudgmentAnswer, BlankAnswers, CalculationAnswer, CalculationTolerance, Explanation });
+    public string ContentSignature => JsonSerializer.Serialize(new { Type, Stem, Options, CorrectOptions, JudgmentAnswer, BlankAnswers, CalculationAnswer, CalculationTolerance, ReferenceAnswer, Explanation });
 
     public string? ValidationError
     {
@@ -49,6 +53,8 @@ public sealed class QuestionDraft : INotifyPropertyChanged
             if (Type != QuestionType.Judgment && JudgmentAnswer is not null) return "当前题型不能包含判断题答案。";
             if (Type != QuestionType.Blank && BlankAnswers.Count > 0) return "当前题型不能包含填空题答案。";
             if (Type != QuestionType.Calculation && (CalculationAnswer is not null || CalculationTolerance != 0)) return "当前题型不能包含计算题答案。";
+            if (IsSubjective && string.IsNullOrWhiteSpace(ReferenceAnswer)) return "请补充参考答案。";
+            if (!IsSubjective && !string.IsNullOrWhiteSpace(ReferenceAnswer)) return "当前题型不能包含主观题参考答案。";
             if (Type == QuestionType.Calculation)
             {
                 if (CalculationAnswer is null) return "请填写有效的参考数值。";
@@ -101,6 +107,15 @@ public sealed class QuestionDraft : INotifyPropertyChanged
             case QuestionType.Calculation:
                 question.Stem = $"【{topic} · 示例 {number}】每份资料 2.5 MB，4 份资料共多少 MB？";
                 question.CalculationAnswer = 10; question.Explanation = "2.5 × 4 = 10 MB。"; break;
+            case QuestionType.ShortAnswer:
+                question.Stem = $"【{topic} · 示例 {number}】简述 TCP 的连接特征。";
+                question.ReferenceAnswer = "TCP 提供面向连接的传输服务。"; break;
+            case QuestionType.MaterialAnalysis:
+                question.Stem = $"【{topic} · 示例 {number}】TCP 面向连接，UDP 无连接。分析两者的连接方式。";
+                question.ReferenceAnswer = "TCP 传输前需要建立连接，UDP 无需建立连接。"; break;
+            case QuestionType.TermExplanation:
+                question.Stem = $"【{topic} · 示例 {number}】解释传输控制协议。";
+                question.ReferenceAnswer = "TCP 是面向连接的传输层协议。"; break;
         }
         return question;
     }

@@ -14,7 +14,7 @@ public partial class ExamView : UserControl
     private readonly Action save;
     private readonly Action openWrongs;
     private readonly Func<int> fontSize;
-    private static readonly string[] TypeNames = ["单选题", "多选题", "判断题", "填空题", "计算题", "简答题", "材料分析题", "名词解释题"];
+    private static readonly string[] TypeNames = Enum.GetValues<QuestionType>().Select(QuestionDraft.NameOf).ToArray();
     private readonly TextBox[] countInputs = new TextBox[TypeNames.Length];
     private readonly TextBox[] scoreInputs = new TextBox[TypeNames.Length];
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromMilliseconds(250) };
@@ -54,10 +54,10 @@ public partial class ExamView : UserControl
     private void UpdateSettings()
     {
         var bank = BankPicker.SelectedItem as SampleLibrary;
-        BankSource.Text = bank is null ? "" : $"{bank.Source} · {bank.ConfirmedCount} 题";
+        BankSource.Text = bank is null ? "" : $"{bank.Source} · {bank.PlayableCount} 题";
         for (var i = 0; i < TypeNames.Length; i++)
         {
-            availableInputs[i].Text = (bank?.Questions.Count(q => (int)q.Type == i && q.IsConfirmed && q.ValidationError is null) ?? 0).ToString();
+            availableInputs[i].Text = (bank?.Questions.Count(q => (int)q.Type == i && q.IsAvailableForLearning) ?? 0).ToString();
             subtotalLabels[i].Text = typeSelections[i].IsChecked == true && int.TryParse(countInputs[i].Text, out var count) && count >= 0 && decimal.TryParse(scoreInputs[i].Text, out var score) && score > 0
                 ? $"{count * score:0.##} 分" : "—";
             subtotalLabels[i].SetResourceReference(TextBlock.ForegroundProperty, typeSelections[i].IsChecked == true ? "TextBrush" : "MutedBrush");
@@ -111,13 +111,13 @@ public partial class ExamView : UserControl
         if (BankPicker.SelectedItem is not SampleLibrary bank) { Feedback.Text = "请选择题库。"; return; }
         if (!TrySettings(out var counts, out var scores) || counts.Sum() == 0 || !int.TryParse(MinutesInput.Text, out var minutes) || minutes <= 0)
         { Feedback.Text = "题量须为非负整数且至少一题，请选择至少一种题型，分值和考试时长须大于零。"; return; }
-        var unavailable = Enumerable.Range(QuestionDraft.TypeCount, TypeNames.Length - QuestionDraft.TypeCount).Where(i => counts[i] > 0)
+        var unavailable = Enumerable.Range(QuestionDraft.AutoGradedTypeCount, TypeNames.Length - QuestionDraft.AutoGradedTypeCount).Where(i => counts[i] > 0)
             .Select(i => $"{TypeNames[i]}缺 {counts[i]} 道（可用 0 道）").ToArray();
         if (unavailable.Length > 0)
         { Feedback.Text = string.Join("；", unavailable) + "。请调整题量后再开始，不会重复抽题。"; return; }
-        if (LearningRules.Shortage(bank, counts[..QuestionDraft.TypeCount]) is { } missing) { Feedback.Text = missing; return; }
+        if (LearningRules.Shortage(bank, counts[..QuestionDraft.AutoGradedTypeCount]) is { } missing) { Feedback.Text = missing; return; }
         if (state.Exam is { Finished: false } && MessageBox.Show("新考试会替换当前未交卷试卷。是否继续？", "开始新考试", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
-        state.Exam = LearningRules.CreateExam(bank, counts[..QuestionDraft.TypeCount], scores[..QuestionDraft.TypeCount], minutes, TypeRows.Children.Cast<Grid>().Where(row => (int)row.Tag < QuestionDraft.TypeCount && typeSelections[(int)row.Tag].IsChecked == true).Select(row => (QuestionType)(int)row.Tag).ToArray()); QuestionMap.Children.Clear(); save(); OpenPaper(); BeginClock();
+        state.Exam = LearningRules.CreateExam(bank, counts[..QuestionDraft.AutoGradedTypeCount], scores[..QuestionDraft.AutoGradedTypeCount], minutes, TypeRows.Children.Cast<Grid>().Where(row => (int)row.Tag < QuestionDraft.AutoGradedTypeCount && typeSelections[(int)row.Tag].IsChecked == true).Select(row => (QuestionType)(int)row.Tag).ToArray()); QuestionMap.Children.Clear(); save(); OpenPaper(); BeginClock();
     }
     private void OpenPrevious(object sender, RoutedEventArgs e) => OpenPaper();
     public void OpenPaper()

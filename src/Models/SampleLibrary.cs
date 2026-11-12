@@ -18,12 +18,16 @@ public sealed class SampleLibrary : INotifyPropertyChanged
     public int Judgment => Questions.Count(q => q.Type == QuestionType.Judgment);
     public int Blank => Questions.Count(q => q.Type == QuestionType.Blank);
     public int Calculation => Questions.Count(q => q.Type == QuestionType.Calculation);
+    public int ShortAnswer => Questions.Count(q => q.Type == QuestionType.ShortAnswer);
+    public int MaterialAnalysis => Questions.Count(q => q.Type == QuestionType.MaterialAnalysis);
+    public int TermExplanation => Questions.Count(q => q.Type == QuestionType.TermExplanation);
     public int Count => Questions.Count;
     public int ConfirmedCount => Questions.Count(q => q.IsConfirmed && q.ValidationError is null);
     public int IncompleteCount => Questions.Count(q => !q.IsConfirmed && q.ValidationError is not null);
-    public bool IsReady => ConfirmedCount > 0;
-    public string Status => IsReady ? "可练习" : "待审核";
-    public string Action => IsReady ? "查看与审核题目  ›" : "审核题目  ›";
+    public int PlayableCount => Questions.Count(q => q.IsAvailableForLearning);
+    public bool IsReady => PlayableCount > 0;
+    public string Status => IsReady ? "可练习" : ConfirmedCount > 0 ? "已入库" : "待审核";
+    public string Action => ConfirmedCount > 0 ? "查看与审核题目  ›" : "审核题目  ›";
     public string ReviewSummary => $"已入库 {ConfirmedCount} · 待审核 {Count - ConfirmedCount} · 待补全 {IncompleteCount}";
 
     public SampleLibrary(string name, string source, int single = 0, int multiple = 0, int judgment = 0, int blank = 0, bool isReady = false, string color = "#0866FF", Guid? id = null)

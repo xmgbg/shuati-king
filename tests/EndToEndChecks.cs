@@ -27,8 +27,6 @@ internal static class EndToEndChecks
         ((TextBox)import.FindName("LibraryNameInput")).Text = "全流程验收资料";
         ((TextBox)import.FindName("SourceInput")).Text = "网络协议、传输层与局域网基础。";
         Click(import, "NextButton"); Click(import, "NextButton");
-        var counts = new[] { "SingleCount", "MultipleCount", "JudgmentCount", "BlankCount" };
-        for (var i = 0; i < counts.Length; i++) ((TextBox)import.FindName(counts[i])).Text = i == 0 ? "2" : "1";
         var generating = import.GenerateAsync(); var frame = new DispatcherFrame();
         generating.ContinueWith(_ => window.Dispatcher.BeginInvoke(() => frame.Continue = false));
         Dispatcher.PushFrame(frame); generating.GetAwaiter().GetResult();
@@ -37,9 +35,9 @@ internal static class EndToEndChecks
         var all = (CheckBox)review.FindName("SelectAllCheck"); all.IsChecked = true; all.RaiseEvent(new RoutedEventArgs(CheckBox.ClickEvent));
         Click(review, "BatchConfirmButton"); Click(review, "HomeButton");
         var bank = home.SelectedLibrary!;
-        Program.Check(bank.Name == "全流程验收资料" && bank.ConfirmedCount == 5, "导入示例经审核形成独立可用题库");
+        Program.Check(bank.Name == "全流程验收资料" && bank.ConfirmedCount == 4, "导入示例经审核形成独立可用题库");
         LibraryAction(home, "开始练习"); var practice = (PracticeView)host.Content; Click(practice, "StartButton"); window.UpdateLayout();
-        for (var i = 0; i < 5; i++)
+        for (var i = 0; i < 4; i++)
         {
             var editor = (AnswerEditor)((ContentControl)practice.FindName("QuestionHost")).Content;
             Fill(editor, i != 0); Click(practice, "SubmitButton"); Click(practice, "NextButton"); window.UpdateLayout();

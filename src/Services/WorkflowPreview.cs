@@ -19,7 +19,7 @@ public static class WorkflowPreview
 
     public static List<QuestionDraft> ExistingExamples(string topic)
     {
-        var questions = Enum.GetValues<QuestionType>().Select(t => QuestionDraft.Example(t, topic)).ToList();
+        var questions = Enum.GetValues<QuestionType>().Take(QuestionDraft.AutoGradedTypeCount).Select(t => QuestionDraft.Example(t, topic)).ToList();
         questions[2].JudgmentAnswer = null;
         return questions;
     }
@@ -31,7 +31,7 @@ public static class WorkflowPreview
         questions = library.Questions.Where(q => q.IsConfirmed && q.ValidationError is null).Select(q => new
         {
             type = q.TypeName, stem = q.Stem, options = q.Options, correctOptions = q.CorrectOptions,
-            judgmentAnswer = q.JudgmentAnswer, blankAnswers = q.BlankAnswers, calculationAnswer = q.CalculationAnswer, calculationTolerance = q.CalculationTolerance, explanation = q.Explanation
+            judgmentAnswer = q.JudgmentAnswer, blankAnswers = q.BlankAnswers, calculationAnswer = q.CalculationAnswer, calculationTolerance = q.CalculationTolerance, referenceAnswer = q.ReferenceAnswer, explanation = q.Explanation
         })
     }, new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
 }

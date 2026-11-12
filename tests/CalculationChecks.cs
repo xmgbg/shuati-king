@@ -27,7 +27,7 @@ internal static class CalculationChecks
         var config = new AiConfiguration();
         const string stem = "每份资料 2.5 MB，4 份资料共多少 MB？";
         var source = DocumentReader.FromText($"1. {stem}\n答案：10 MB");
-        var plan = MaterialPlanner.Create(source, true, new int[QuestionDraft.TypeCount], config);
+        var plan = MaterialPlanner.Create(source, true, [], config);
         var session = new QuestionImportSession(plan);
         var item = new { unitId = 1, type = "Calculation", number = "1", stem, quote = source.Text, originalAnswer = "10 MB", answerQuote = "答案：10 MB", calculationAnswer = 999 };
         QuestionImportService.ParseBatch(session, plan.Batches[0], JsonSerializer.Serialize(new { items = new[] { item }, answers = Array.Empty<object>(), skipped = Array.Empty<object>() }));
@@ -35,7 +35,7 @@ internal static class CalculationChecks
         var withoutAnswer = new QuestionImportSession(plan);
         QuestionImportService.ParseBatch(withoutAnswer, plan.Batches[0], JsonSerializer.Serialize(new { items = new[] { item with { originalAnswer = "", answerQuote = "" } }, answers = Array.Empty<object>(), skipped = Array.Empty<object>() }));
         Program.Check(withoutAnswer.Questions.Single().CalculationAnswer is null && withoutAnswer.Questions[0].ValidationError is not null, "缺原答案时即使模型猜了数值仍待补全");
-        var tablePlan = MaterialPlanner.Create(DocumentReader.FromText($"1. {stem}\n参考答案\n1. 10 MB"), true, new int[QuestionDraft.TypeCount], config);
+        var tablePlan = MaterialPlanner.Create(DocumentReader.FromText($"1. {stem}\n参考答案\n1. 10 MB"), true, [], config);
         var table = new QuestionImportSession(tablePlan);
         QuestionImportService.ParseBatch(table, tablePlan.Batches[0], JsonSerializer.Serialize(new
         {
@@ -45,10 +45,10 @@ internal static class CalculationChecks
         QuestionImportService.ResolveAnswers(table);
         Program.Check(table.Questions.Single().CalculationAnswer == 10 && table.Questions[0].AnswerEvidence.Contains("1. 10 MB"), "文末答案关联到计算题且保留出处");
         using var fixture = new GenerationFixture();
-        var generation = MaterialPlanner.ForGeneration(MaterialPlanner.Create(source, false, [0, 0, 0, 0, 1], fixture.Configuration));
+        var generation = MaterialPlanner.Create(source, false, [QuestionType.Calculation], fixture.Configuration);
         var generated = new QuestionImportSession(generation);
         new QuestionImportService().RunAsync(generated, fixture.Configuration).GetAwaiter().GetResult();
-        Program.Check(fixture.Server.RequestCount == 1 && generated.Questions.Single() is { Type: QuestionType.Calculation, CalculationAnswer: 10, ValidationError: null, IsConfirmed: false }, "真实 HTTP 流程按计算题配额生成可审核草稿");
+        Program.Check(fixture.Server.RequestCount == 1 && generated.Questions.Single() is { Type: QuestionType.Calculation, CalculationAnswer: 10, ValidationError: null, IsConfirmed: false }, "真实 HTTP 流程仅选择计算题时生成可审核草稿");
         var malformed = new QuestionImportSession(generation);
         QuestionImportService.ParseGenerated(malformed, generation.Batches[0], JsonSerializer.Serialize(new
         {

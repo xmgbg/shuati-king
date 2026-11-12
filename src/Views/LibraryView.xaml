@@ -59,12 +59,15 @@
        <StackPanel Grid.Column="1"><TextBlock Text="{Binding Name}" FontSize="24" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="{Binding Source, StringFormat=来源：{0}}" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,8,0,14"/><WrapPanel><TextBlock Text="{Binding Count, StringFormat={}{0} 题}" FontSize="18" Margin="0,0,16,0"/><Border Style="{StaticResource StatusBadge}"><TextBlock Text="{Binding Status}" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=Tag}" FontWeight="SemiBold"/></Border></WrapPanel></StackPanel>
       </Grid>
       <TextBlock Text="{Binding ReviewSummary}" FontSize="13" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,16,0,0"/><Border Height="1" Background="{DynamicResource LineBrush}" Margin="0,24"/>
-      <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+      <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
        <TextBlock Text="单选题" Style="{StaticResource DetailLabel}"/><TextBlock Grid.Column="1" Text="{Binding Single}" Style="{StaticResource DetailLabel}"/>
        <TextBlock Grid.Row="1" Text="多选题" Style="{StaticResource DetailLabel}"/><TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Multiple}" Style="{StaticResource DetailLabel}"/>
        <TextBlock Grid.Row="2" Text="判断题" Style="{StaticResource DetailLabel}"/><TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Judgment}" Style="{StaticResource DetailLabel}"/>
        <TextBlock Grid.Row="3" Text="填空题" Style="{StaticResource DetailLabel}"/><TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Blank}" Style="{StaticResource DetailLabel}"/>
        <TextBlock Grid.Row="4" Text="计算题" Style="{StaticResource DetailLabel}"/><TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Calculation}" Style="{StaticResource DetailLabel}"/>
+       <TextBlock Grid.Row="5" Text="简答题" Style="{StaticResource DetailLabel}"/><TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding ShortAnswer}" Style="{StaticResource DetailLabel}"/>
+       <TextBlock Grid.Row="6" Text="材料分析题" Style="{StaticResource DetailLabel}"/><TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding MaterialAnalysis}" Style="{StaticResource DetailLabel}"/>
+       <TextBlock Grid.Row="7" Text="名词解释题" Style="{StaticResource DetailLabel}"/><TextBlock Grid.Row="7" Grid.Column="1" Text="{Binding TermExplanation}" Style="{StaticResource DetailLabel}"/>
       </Grid>
       <Border Height="1" Background="{DynamicResource LineBrush}" Margin="0,20"/>
       <Button Content="{Binding Action}" HorizontalAlignment="Left" BorderThickness="0" Padding="0,8" Click="PreviewAction" Tag="题目管理" Margin="0,0,0,16"/>
@@ -72,7 +75,7 @@
        <Button Content="开始练习" Style="{StaticResource PrimaryButton}" IsEnabled="{Binding IsReady}" Click="PreviewAction" Tag="开始练习" Padding="8,12"/>
        <Button Grid.Column="2" Content="模拟考试" IsEnabled="{Binding IsReady}" Click="PreviewAction" Tag="模拟考试" Padding="8,12"/>
       </Grid>
-      <TextBlock x:Name="PendingHint" Text="审核通过后，即可练习和考试" Foreground="{DynamicResource WarningBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,14,0,0"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsReady}" Value="False"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+      <TextBlock x:Name="PendingHint" Text="暂无可用于练习和考试的题目" Foreground="{DynamicResource WarningBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,14,0,0"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsReady}" Value="False"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
      </StackPanel>
     </Border>
    </Grid>

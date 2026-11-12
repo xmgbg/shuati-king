@@ -76,6 +76,7 @@ public partial class ReviewView : UserControl
         FalseAnswer.IsChecked = question?.JudgmentAnswer == false;
         CalculationAnswerInput.Text = question?.CalculationAnswer is { } numeric ? NumericAnswer.Format(numeric) : "";
         CalculationToleranceInput.Text = NumericAnswer.Format(question?.CalculationTolerance ?? 0);
+        ReferenceAnswerInput.Text = question?.ReferenceAnswer ?? "";
         BlankAnswersInput.Text = question is null ? "" : string.Join("\n", question.BlankAnswers.Select(a => string.Join(" | ", a)));
         RenderOptions(question?.Options ?? [], question?.CorrectOptions ?? []);
         UpdateAnswerVisibility(); UpdateValidation();
@@ -97,6 +98,7 @@ public partial class ReviewView : UserControl
         JudgmentAnswers.Visibility = QuestionTypeInput.SelectedIndex == 2 ? Visibility.Visible : Visibility.Collapsed;
         BlankAnswers.Visibility = QuestionTypeInput.SelectedIndex == 3 ? Visibility.Visible : Visibility.Collapsed;
         CalculationAnswers.Visibility = QuestionTypeInput.SelectedIndex == (int)QuestionType.Calculation ? Visibility.Visible : Visibility.Collapsed;
+        ReferenceAnswerPanel.Visibility = QuestionTypeInput.SelectedIndex >= QuestionDraft.AutoGradedTypeCount ? Visibility.Visible : Visibility.Collapsed;
         ChoiceHint.Text = QuestionTypeInput.SelectedIndex == 0 ? "选择一个正确答案" : "勾选所有正确答案";
     }
 
@@ -153,6 +155,7 @@ public partial class ReviewView : UserControl
         q.CorrectOptions = choice ? optionRows.Select((r, i) => (r, i)).Where(x => x.r.Correct.IsChecked == true).Select(x => x.i).ToList() : [];
         q.JudgmentAnswer = q.Type == QuestionType.Judgment ? TrueAnswer.IsChecked == true ? true : FalseAnswer.IsChecked == true ? false : null : null;
         q.BlankAnswers = q.Type != QuestionType.Blank || string.IsNullOrWhiteSpace(BlankAnswersInput.Text) ? [] : BlankAnswersInput.Text.Replace("\r", "").Split('\n').Select(line => line.Split('|').Select(x => x.Trim()).Where(x => x.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList()).ToList();
+        q.ReferenceAnswer = q.IsSubjective ? ReferenceAnswerInput.Text.Trim() : "";
         q.CalculationAnswer = null;
         q.CalculationTolerance = 0;
         if (q.Type == QuestionType.Calculation)

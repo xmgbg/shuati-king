@@ -7,7 +7,7 @@ internal static class QuestionChecks
     internal static void Run()
     {
         foreach (var type in Enum.GetValues<QuestionType>())
-            Program.Check(QuestionDraft.Example(type, "审核校验").ValidationError is null, "五种题型的完整答案可审核");
+            Program.Check(QuestionDraft.Example(type, "审核校验").ValidationError is null, "八种题型的完整答案可审核");
         var multiple = QuestionDraft.Example(QuestionType.Multiple, "测试");
         multiple.CorrectOptions = [0];
         Program.Check(multiple.ValidationError is not null, "多选缺少第二个答案不能确认");

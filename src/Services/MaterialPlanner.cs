@@ -10,71 +10,95 @@ public static class MaterialPlanner
 {
     // 字符数是请求体大小的边界，不冒充精确 Token 数；不删除页眉等无法可靠判断的内容。
     public const int BatchCharacters = 6000;
+    public const int GenerationBatchCharacters = 3000;
     private static readonly Regex Heading = new(@"^\s*(第[一二三四五六七八九十百零〇0-9]+章|Chapter\s+\d+)", RegexOptions.IgnoreCase);
-    private static readonly Regex QuestionStart = new(@"^\s*(?:\d+[.．、)）]|[（(]\d+[)）])\s*");
+    private static readonly Regex QuestionStart = new(@"^\s*(?:\d+(?:[.．](?!\d)|[、)）])|[（(]\d+[)）])\s*");
 
-    public static MaterialPlan ForGeneration(MaterialPlan plan)
-    {
-        var batches = new List<MaterialBatch>();
-        foreach (var batch in plan.Batches)
-        {
-            var left = batch.Targets.ToArray();
-            while (left.Sum() > 0)
-            {
-                var counts = new int[QuestionDraft.TypeCount]; var available = 10;
-                for (var type = 0; type < QuestionDraft.TypeCount; type++)
-                { counts[type] = Math.Min(left[type], available); left[type] -= counts[type]; available -= counts[type]; }
-                batches.Add(new(batches.Count + 1, batch.Units, counts.ToImmutableArray()));
-            }
-        }
-        return plan with { Batches = batches.ToImmutableArray() };
-    }
+    private static readonly Regex ContentsEntry = new(@"(?:(?:[.．·]\s*){3,}|(?:…\s*){2,})\d+\s*$");
+    private static readonly Regex ExerciseHeading = new(@"^\s*(课后习题|课后练习|本章习题|本章练习|习题|练习题)\s*[:：]?\s*$");
 
-    public static MaterialPlan Create(SourceDocument source, bool existing, int[] targets, AiConfiguration? configuration = null)
+    public static MaterialPlan Create(SourceDocument source, bool existing, IEnumerable<QuestionType> selectedTypes, AiConfiguration? configuration = null)
     {
         if (!source.HasText) throw new ArgumentException("资料内容不能为空。");
-        if (targets.Length is not (4 or QuestionDraft.TypeCount) || targets.Any(number => number < 0 || number > 100)) throw new ArgumentException("每种题型的题量须为 0–100 道。");
-        if (targets.Length == 4) targets = [.. targets, 0];
+        var types = existing ? [] : selectedTypes.Distinct().Order().ToImmutableArray();
+        if (!existing && (types.IsEmpty || types.Any(type => !Enum.IsDefined(type))))
+            throw new ArgumentException("请选择有效的题型。");
         var units = new List<MaterialUnit>();
         var pieces = new List<SourceExcerpt>();
         var scope = "全文";
+        var batchCharacters = existing ? BatchCharacters : GenerationBatchCharacters;
+        var inContents = false;
+        var inExercises = false;
         void Flush()
         {
             if (pieces.Count == 0) return;
-            units.Add(new(units.Count + 1, scope, pieces.ToImmutableArray(), false)); pieces.Clear();
+            units.Add(new(units.Count + 1, scope, pieces.ToImmutableArray(), false, inExercises)); pieces.Clear();
         }
         foreach (var section in source.Sections)
         {
-            // 保留换行和空段，位置来自已确认预览，后续编辑不会改写该快照。
+            // 位置来自已确认预览；知识资料中的分页标记不会切断正文。
+            var pageNumber = existing ? "" : Regex.Match(section.Location, @"^第 (\d+) 页$").Groups[1].Value;
+            var firstLine = true;
             foreach (Match match in Regex.Matches(section.Text + "\n", @"[^\n]*\n"))
             {
                 var line = match.Value;
+                if (!existing)
+                {
+                    if (string.IsNullOrWhiteSpace(line))
+                    {
+                        if (!inExercises) Flush();
+                        continue;
+                    }
+                    if (firstLine)
+                    {
+                        firstLine = false;
+                        if (line.Trim() == pageNumber) continue;
+                    }
+                    if (Regex.IsMatch(line, @"^\s*目\s*录\s*$"))
+                    {
+                        Flush();
+                        inContents = true;
+                        continue;
+                    }
+                    if (inContents && ContentsEntry.IsMatch(line)) continue;
+                    inContents = false;
+                    if (ExerciseHeading.IsMatch(line))
+                    {
+                        Flush();
+                        inExercises = true;
+                        continue;
+                    }
+                }
                 var heading = Heading.Match(line);
-                if (heading.Success) { Flush(); scope = Regex.Replace(heading.Groups[1].Value, @"\s+", "").ToLowerInvariant(); }
-                else if (existing && QuestionStart.IsMatch(line) || !existing && string.IsNullOrWhiteSpace(line)) Flush();
+                if (heading.Success)
+                {
+                    Flush();
+                    inExercises = false;
+                    scope = Regex.Replace(heading.Groups[1].Value, @"\s+", "").ToLowerInvariant();
+                }
+                else if ((existing || inExercises) && QuestionStart.IsMatch(line)) Flush();
                 if (pieces.Count > 0 && pieces[^1].Location == section.Location)
                     pieces[^1] = pieces[^1] with { Text = pieces[^1].Text + line };
                 else pieces.Add(new(section.Location, line));
-                if (!existing && !string.IsNullOrWhiteSpace(line)) Flush();
             }
         }
         Flush();
         var bounded = new List<MaterialUnit>();
         foreach (var unit in units)
         {
-            var split = unit.Length > BatchCharacters;
+            var split = unit.Length > batchCharacters;
             var current = new List<SourceExcerpt>(); var size = 0;
             void AddUnit()
             {
                 if (size == 0) return;
-                bounded.Add(new(bounded.Count + 1, unit.Scope, current.ToImmutableArray(), split)); current.Clear(); size = 0;
+                bounded.Add(new(bounded.Count + 1, unit.Scope, current.ToImmutableArray(), split, unit.Exercise)); current.Clear(); size = 0;
             }
             foreach (var piece in unit.Sources)
             {
                 var offset = 0;
                 while (offset < piece.Text.Length)
                 {
-                    var take = Math.Min(BatchCharacters - size, piece.Text.Length - offset);
+                    var take = Math.Min(batchCharacters - size, piece.Text.Length - offset);
                     // 超长段落优先在句末或换行处分开，保持字符完整覆盖。
                     if (take < piece.Text.Length - offset && take > 100)
                     {
@@ -82,7 +106,7 @@ public static class MaterialPlanner
                         if (end >= offset + take / 2) take = end - offset + 1;
                     }
                     current.Add(new(piece.Location, piece.Text.Substring(offset, take))); size += take; offset += take;
-                    if (size == BatchCharacters || offset < piece.Text.Length) AddUnit();
+                    if (size == batchCharacters || offset < piece.Text.Length) AddUnit();
                 }
             }
             AddUnit();
@@ -90,26 +114,13 @@ public static class MaterialPlanner
         var groups = new List<List<MaterialUnit>>();
         foreach (var unit in bounded)
         {
-            if (groups.Count == 0 || groups[^1].Sum(item => item.Length) + unit.Length > BatchCharacters || groups[^1][0].Scope != unit.Scope)
+            if (groups.Count == 0 || groups[^1].Sum(item => item.Length) + unit.Length > batchCharacters || groups[^1][0].Scope != unit.Scope)
                 groups.Add([]);
             groups[^1].Add(unit);
         }
-        var allocations = groups.Select(_ => new int[QuestionDraft.TypeCount]).ToArray();
-        if (!existing)
-        {
-            var weights = groups.Select(group => group.Sum(unit => unit.Text.Count(character => !char.IsWhiteSpace(character)))).ToArray();
-            var total = weights.Sum();
-            for (var type = 0; type < QuestionDraft.TypeCount; type++)
-            {
-                var quotas = weights.Select(weight => (double)weight / total * targets[type]).ToArray();
-                for (var i = 0; i < groups.Count; i++) allocations[i][type] = (int)Math.Floor(quotas[i]);
-                foreach (var index in Enumerable.Range(0, groups.Count).OrderByDescending(i => quotas[i] - allocations[i][type]).ThenBy(i => i)
-                    .Take(targets[type] - allocations.Sum(values => values[type]))) allocations[index][type]++;
-            }
-        }
         var version = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(source.Text)));
-        return new(source.Name, version, existing, targets.ToImmutableArray(), groups.Select((group, index) =>
-            new MaterialBatch(index + 1, group.ToImmutableArray(), allocations[index].ToImmutableArray())).ToImmutableArray(),
+        return new(source.Name, version, existing, types, groups.Select((group, index) =>
+            new MaterialBatch(index + 1, group.ToImmutableArray())).ToImmutableArray(),
             configuration?.Id ?? Guid.Empty, configuration?.Model.Trim() ?? "");
     }
 }
